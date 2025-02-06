@@ -24,11 +24,10 @@ trip_data <- here("data", "NHTS", "trippub.csv") |>
 veh_data <- here("data", "NHTS", "vehpub.csv") |>
   read_csv(show_col_types = FALSE)
 
-#TODO: add travel time to/from transit to destination as a variable
-
 #select columns from hh and person datasets
 hh_data <- hh_data |>
   select(WRKCOUNT,
+         CAR,
          DRVRCNT,
          HHVEHCNT,
          HHSIZE,
@@ -41,7 +40,8 @@ person_data <- person_data |>
   select(HOUSEID,
          R_AGE,
          WORKER,
-         DRIVER)
+         DRIVER,
+         R_RELAT)
 
 
 #assign categorical outcome of vehicle availability
@@ -62,6 +62,15 @@ n_seniors <- person_data |>
 
 hh_data <- hh_data |>
   left_join(n_seniors)
+
+#get number of partner
+n_partner <- person_data |>
+  mutate(has_partner = R_RELAT == "02") |>
+  group_by(HOUSEID) |>
+  summarise(n_partner = sum(has_partner))
+
+hh_data <- hh_data |>
+  left_join(n_partner)
 
 #get presence of >2 drivers (t/f)
 hh_data <- hh_data |>
@@ -96,6 +105,14 @@ non_work_driver <- person_data |>
 hh_data <- hh_data |>
   left_join(non_work_driver)
 
+#categorical vehicle use freq
+hh_data <- hh_data |>
+  mutate(car_freq = case_when(CAR == "01" ~ "Daily",
+                              CAR == "02" ~ "Semi-weekly",
+                              CAR == "03" ~ "Semi-monthly",
+                              CAR == "04" ~ "Semi-yearly",
+                              CAR == "05" ~ "Never"))
+
 #make new column with "density" categorical var based on pop density
 hh_data <- hh_data |>
   filter(HBPPOPDN > 0) |>
@@ -109,8 +126,10 @@ hh_data <- hh_data |>
   select(HOUSEID,
          veh_avail,
          WRKCOUNT,
+         car_freq,
          n_child,
          n_seniors,
+         n_partner,
          n_extra_drivers,
          three_drivers,
          non_work_driver,
@@ -145,8 +164,10 @@ veh_dfidx_test <- fn_make_dfidx(hh_data_test,
 #estimate multinominal logistic regression
 model_veh <- mlogit(choice ~ 0 |
                     WRKCOUNT +
+                    car_freq +
                     n_child +
                     n_seniors +
+                    n_partner +
                     n_extra_drivers +
                     three_drivers + 
                     non_work_driver +
