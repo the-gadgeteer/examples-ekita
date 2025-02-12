@@ -1,5 +1,16 @@
 # MEMO: what are the predictors of hh veh avail
+# Goals
+# 1. estimate a model similar to the Boston Model
+# 2. Look at the coefficients and interpret them (from my model)
+# 3. Compare them to the coefficients to the Structures and Performance Report
+# 4. Why are they different? What is included or not included?
+# 5. Differences potentially due to State vs National data. 
+
+# B: What would a model that estimates veh avail be useful for? 
+#    Does this model return inputs into another model (i.e. Boston)
 # how do my results compare given sample (local vs natnl)
+# provide complete GitHub repo that is well organized
+# summary of results in tabular form
 
 library(tidyverse)
 library(here)
@@ -63,14 +74,14 @@ n_seniors <- person_data |>
 hh_data <- hh_data |>
   left_join(n_seniors)
 
-#get number of partner
-n_partner <- person_data |>
-  mutate(has_partner = R_RELAT == "02") |>
+#get partner presence (t/f)
+has_partner <- person_data |>
+  mutate(partner = R_RELAT == "02") |>
   group_by(HOUSEID) |>
-  summarise(n_partner = sum(has_partner))
+  summarise(has_partner = sum(partner) > 0)
 
 hh_data <- hh_data |>
-  left_join(n_partner)
+  left_join(has_partner)
 
 #get presence of >2 drivers (t/f)
 hh_data <- hh_data |>
@@ -167,7 +178,7 @@ model_veh <- mlogit(choice ~ 0 |
                     car_freq +
                     n_child +
                     n_seniors +
-                    n_partner +
+                    has_partner +
                     n_extra_drivers +
                     three_drivers + 
                     non_work_driver +

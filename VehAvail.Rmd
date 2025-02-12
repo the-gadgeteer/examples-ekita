@@ -1,0 +1,128 @@
+---
+title: "SES 5394: P2 Vehicle Availability"
+output: html_document
+---
+
+# MEMO: SES 5394: P2 Vehicle Availability
+
+Ethan Kita February 13, 2025
+
+Goals
+
+1.  estimate a model similar to the Boston Model
+2.  Look at the coefficients and interpret them (from my model)
+3.  Compare them to the coefficients to the Structures and Performance Report
+4.  Why are they different? What is included or not included?
+5.  Differences potentially due to State vs National data. B: What would a model that estimates veh avail be useful for? Does this model return inputs into another model (i.e. Boston) how do my results compare given sample (local vs natnl) provide complete GitHub repo that is well organized summary of results in tabular form
+
+This report includes two attachments, `bos_vehavail.R`, which contains an approximation of the Boston TDM32 (Travel Demand Model) based on data from the NHTS (National Household Travel Survey), and `bos_vehavail_ek.R` includes further changes detailed below to improve the accuracy of the model.
+
+Differences between factors used in the Boston model and 'bos_vehavail.R' include the following: 1. Not all variables in the Boston model were available in the NHTS dataset, i.e., employment density, intersection density, or accessibility.
+
+## Comparison to the TDM32 Structures and Performance Report
+
+### Vehicle Availability Parameters
+
+|                              Variable | TDM32 Value | bos_vehavail.R Value |
+|--------------------------------------:|------------:|---------------------:|
+|         **Zero Vehicle Coefficients** |             |                      |
+|                                   ASC |       -3.05 |                0.207 |
+|                         Workers in HH |      -0.475 |               -3.243 |
+|                        Children in HH |      -0.371 |                -0.12 |
+|                                   CBD |         0.5 |                      |
+|                  Intersection Density |         1.2 |                  N/A |
+|                         Low Income HH |         3.5 |                 1.99 |
+|                      Suburban v Rural |       -0.95 |                      |
+|         Transit/Highway Accessibility |       0.758 |                  N/A |
+| **Insufficient Vehicle Coefficients** |             |                      |
+|                                   ASC |      -0.289 |               -4.316 |
+|                                   CBD |       0.768 |                      |
+|                  Intersection Density |       0.928 |                  N/A |
+|                         Low Income HH |         0.6 |                 0.60 |
+|                         Seniors in HH |       0.315 |                 0.32 |
+|                      Num Drivers \> 2 |        0.45 |                 0.26 |
+|                          Drivers \> 2 |        0.85 |                 0.74 |
+|   **Sufficient Vehicle Coefficients** |             |                      |
+|                                   ASC |           1 |                    0 |
+|                    All Worker Drivers |       0.955 |                    0 |
+|                        High Income HH |       0.292 |                    0 |
+|                      Suburban v Rural |      -0.537 |                    0 |
+
+## Possible Explanation of Differences
+
+1.  The Boston model presumably used local data available to the Boston planning commission, while `bos_vehavail.R` is based on a national dataset. The Boston TDM32 (model) includes areas including Rhode Island and parts of New Hampshire, in addition to the whole state of Massachusetts and as such includes a variety of urban/rural environments, but may nonetheless exclude some characteristics found in the national dataset from the National Household Travel Survey.
+2.  Income category splits were based on numeric amounts rounded to the nearest \$5,000 based on the 2017 federal poverty level vs. the 2010 federal poverty level (TDM32).
+3.  Survey data were taken 6 years apart (2011 Massachusetts Travel Survey vs 2017 National Household Travel Survey). There may have been external factors such as cost of living, cost of gas, etc. which could influence short term mode choice, but since vehicles are owned for
+4.  The vehicle availability measure in the Boston TDM32 was designed as an input into a trip-based demand estimation structure (TDM32). As seen in the table above, the ASC used for the Sufficient Vehicle case was set to 1, as well as other parameters being modified due to calibration. In my NHTS-based model, the coefficients were set to zero.
+5.  
+
+## Changes
+
+Further modifying the model, in `bos_vehicleavail_ek.R`, I added a variable for the presence of partners in a household and a categorical variable for vehicle use frequency (daily, semi-weekly, semi-monthly, semi-yearly, never). The reasoning for the former was that partners are more likely to share vehicles. For the latter, I expected to see a correlation between vehicle use frequency and vehicle sufficiency. This indeed was the case as those who never drive has a coefficient of 6.22 for the zero-vehicle case. These changes increased the log-likelihood from -19863 to -15969.
+
+This model would not be a good input into mode choice, due to the use of vehicle frequency in the model for vehicle availability. As discussed in class, best practice is to establish vehicle availability independent of consumer preferences, in order for vehicle availability to be used as an input to consumer preferences instead of the other way around.
+
+TODO: Add AIC(model) comparison. Lower is better.
+
+Unaltered model:
+
+```         
+Confusion Matrix and Statistics            
+Reference 
+Prediction Suff. Insuff.  Zero
+Suff.   54860    4164  1503    
+Insuff.   165     125     1    
+Zero      295       2  1493  
+
+Overall Statistics                                                           Accuracy : 0.9021                            
+95% CI : (0.8997, 0.9044)
+No Information Rate : 0.8836
+P-Value [Acc > NIR] : < 2.2e-16
+Kappa : 0.3205                                                       
+Mcnemar's Test P-Value : < 2.2e-16         
+Statistics by Class:                       
+Class: Suff. Class: Insuff. Class: Zero Sensitivity                0.9917       0.029131     0.49816 Specificity                0.2224       0.997153     0.99502 Pos Pred Value             0.9064       0.429553     0.83408 Neg Pred Value             0.7790       0.933148     0.97527 Prevalence                 0.8836       0.068538     0.04787 Detection Rate             0.8762       0.001997     0.02385 Detection Prevalence       0.9668       0.004648     0.02859 Balanced Accuracy          0.6071       0.513142     0.74659
+```
+
+```         
+Log-Likelihood: -19862
+McFadden R^2:  0.27549
+```
+
+Altered model:
+
+```         
+Confusion Matrix and Statistics            
+Reference 
+Prediction Suff. Insuff.  Zero    
+Suff.   54282    4062   679    
+Insuff.   187     170     6    
+Zero      285      10  1766  
+
+Overall Statistics                                                           Accuracy : 0.9149                            
+95% CI : (0.9127, 0.9171)     
+No Information Rate : 0.8911               
+P-Value [Acc > NIR] : < 2.2e-16
+Kappa : 0.4021                                                       
+Mcnemar's Test P-Value : < 2.2e-16         
+
+Statistics by Class:                       
+Class: Suff. Class: Insuff. Class: 
+Zero Sensitivity          0.9914       0.040075     0.72052 
+Specificity               0.2916       0.996626     0.99500 
+Pos Pred Value            0.9197       0.468320     0.85687 
+Neg Pred Value            0.8053       0.933338     0.98847 
+Prevalence                0.8911       0.069035     0.03989 
+Detection Rate            0.8834       0.002767     0.02874 
+Detection Prevalence      0.9606       0.005908     0.03354 
+Balanced Accuracy         0.6415       0.518351     0.85776
+```
+
+```         
+Log-Likelihood: -15969
+McFadden R^2:  0.37229 
+```
+
+Adding the car use frequencies also contributed allowed more zero-vehicle households which were previously classified as vehicle-sufficient households to be correctly classified.
+
+Yet there were still a decent amount of insufficient cases predicted to be sufficient.

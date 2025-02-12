@@ -96,7 +96,7 @@ hh_data <- hh_data |>
          income,
          density)
 
-set.seed(3775668)
+set.seed(1312025)
 
 hh_data_train_ids <- sample(hh_data$HOUSEID, 
                         size = ceiling(nrow(hh_data)/2))
@@ -128,3 +128,27 @@ model_veh <- mlogit(choice ~ 0 |
                            reflevel = "Suff.")
 
 summary(model_veh)
+
+predicts_test <- predict(model_veh, veh_dfidx_test) |>
+  as.data.frame() |>
+  rownames_to_column("HOUSEID") |>
+  mutate(HOUSEID = as.numeric(HOUSEID)) |>
+  left_join(hh_data_test)
+
+head(predicts_test) |>
+  kable()
+
+predicts_test <- predicts_test |>
+  mutate(most_likely = case_when((Suff. > Insuff.) & (Suff. > Zero) ~ "Suff.",
+                                 (Zero > Insuff.) & (Zero > Suff.) ~ "Zero",
+                                 TRUE ~ "Insuff.")) 
+
+predicts_test <- predicts_test |>
+  mutate(most_likely = factor(most_likely, 
+                              levels = c("Suff.", "Insuff.", "Zero"))) |>
+  mutate(veh_avail = factor(veh_avail,
+                            levels = c("Suff.", "Insuff.", "Zero"))) |>
+  mutate(correct = veh_avail == most_likely)
+
+confusionMatrix(data = predicts_test$most_likely,
+                reference = predicts_test$veh_avail)
