@@ -140,7 +140,7 @@ hh_data <- hh_data |>
          car_freq,
          n_child,
          n_seniors,
-         n_partner,
+         has_partner,
          n_extra_drivers,
          three_drivers,
          non_work_driver,
