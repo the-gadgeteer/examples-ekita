@@ -353,30 +353,257 @@ display: none;
 </div>
 
 
-<p>MEMO: what are the predictors of hh veh avail</p>
-<p>Goals</p>
+<div id="memo-ses-5394-p2-vehicle-availability" class="section level1">
+<h1>MEMO: SES 5394: P2 Vehicle Availability</h1>
+<p>Ethan Kita February 13, 2025</p>
+<p>This report includes two attachments, <code>bos_vehavail.R</code>,
+which contains an approximation of the Boston TDM32 (Travel Demand
+Model) based on data from the NHTS (National Household Travel Survey),
+and <code>bos_vehavail_ek.R</code> includes further changes detailed
+below to improve the accuracy of the model.</p>
+<p>Differences between factors used in the Boston model and
+<code>bos_vehavail.R</code> include the following: 1. Not all variables
+in the Boston model were available in the NHTS dataset, i.e., employment
+density, intersection density, or accessibility.</p>
+<div id="comparison-to-the-tdm32-structures-and-performance-report" class="section level2">
+<h2>Comparison to the TDM32 Structures and Performance Report</h2>
+<div id="vehicle-availability-parameters" class="section level3">
+<h3>Vehicle Availability Parameters</h3>
+<table>
+<colgroup>
+<col width="52%" />
+<col width="17%" />
+<col width="29%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">Variable</th>
+<th align="right">TDM32 Value</th>
+<th align="right">bos_vehavail.R Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right"><strong>Zero Vehicle Coefficients</strong></td>
+<td align="right"></td>
+<td align="right"></td>
+</tr>
+<tr class="even">
+<td align="right">ASC</td>
+<td align="right">-3.05</td>
+<td align="right">0.207</td>
+</tr>
+<tr class="odd">
+<td align="right">Workers in HH</td>
+<td align="right">-0.475</td>
+<td align="right">-3.243</td>
+</tr>
+<tr class="even">
+<td align="right">Children in HH</td>
+<td align="right">-0.371</td>
+<td align="right">-0.12</td>
+</tr>
+<tr class="odd">
+<td align="right">CBD</td>
+<td align="right">0.5</td>
+<td align="right">categorical variable</td>
+</tr>
+<tr class="even">
+<td align="right">Intersection Density</td>
+<td align="right">1.2</td>
+<td align="right">N/A</td>
+</tr>
+<tr class="odd">
+<td align="right">Low Income HH</td>
+<td align="right">3.5</td>
+<td align="right">1.99</td>
+</tr>
+<tr class="even">
+<td align="right">Suburban v Rural</td>
+<td align="right">-0.95</td>
+<td align="right"></td>
+</tr>
+<tr class="odd">
+<td align="right">Transit/Highway Accessibility</td>
+<td align="right">0.758</td>
+<td align="right">N/A</td>
+</tr>
+<tr class="even">
+<td align="right"><strong>Insufficient Vehicle
+Coefficients</strong></td>
+<td align="right"></td>
+<td align="right"></td>
+</tr>
+<tr class="odd">
+<td align="right">ASC</td>
+<td align="right">-0.289</td>
+<td align="right">-4.316</td>
+</tr>
+<tr class="even">
+<td align="right">CBD</td>
+<td align="right">0.768</td>
+<td align="right">categorical variable</td>
+</tr>
+<tr class="odd">
+<td align="right">Intersection Density</td>
+<td align="right">0.928</td>
+<td align="right">N/A</td>
+</tr>
+<tr class="even">
+<td align="right">Low Income HH</td>
+<td align="right">0.6</td>
+<td align="right">0.60</td>
+</tr>
+<tr class="odd">
+<td align="right">Seniors in HH</td>
+<td align="right">0.315</td>
+<td align="right">0.32</td>
+</tr>
+<tr class="even">
+<td align="right">Num Drivers &gt; 2</td>
+<td align="right">0.45</td>
+<td align="right">0.26</td>
+</tr>
+<tr class="odd">
+<td align="right">Drivers &gt; 2</td>
+<td align="right">0.85</td>
+<td align="right">0.74</td>
+</tr>
+<tr class="even">
+<td align="right"><strong>Sufficient Vehicle Coefficients</strong></td>
+<td align="right"></td>
+<td align="right"></td>
+</tr>
+<tr class="odd">
+<td align="right">ASC</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="right">All Worker Drivers</td>
+<td align="right">0.955</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="right">High Income HH</td>
+<td align="right">0.292</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="right">Suburban v Rural</td>
+<td align="right">-0.537</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="possible-explanation-of-differences" class="section level2">
+<h2>Possible Explanation of Differences</h2>
 <ol style="list-style-type: decimal">
-<li>estimate a model similar to the Boston Model</li>
-<li>Look at the coefficients and interpret them (from my model)</li>
-<li>Compare them to the coefficients to the Structures and Performance
-Report</li>
-<li>Why are they different? What is included or not included?</li>
-<li>Differences potentially due to State vs National data. B: What would
-a model that estimates veh avail be useful for? Does this model return
-inputs into another model (i.e. Boston) how do my results compare given
-sample (local vs natnl) provide complete GitHub repo that is well
-organized summary of results in tabular form</li>
+<li>The Boston model presumably used local data available to the Boston
+planning commission, while <code>bos_vehavail.R</code> is based on a
+national dataset. The Boston TDM32 (model) includes areas including
+Rhode Island and parts of New Hampshire, in addition to the whole state
+of Massachusetts and as such includes a variety of urban/rural
+environments, but may nonetheless exclude some characteristics found in
+the national dataset from the National Household Travel Survey.</li>
+<li>Income category splits were based on numeric amounts rounded to the
+nearest $5,000 based on the 2017 federal poverty level vs. the 2010
+federal poverty level (TDM32).</li>
+<li>Survey data were taken 6 years apart (2011 Massachusetts Travel
+Survey vs 2017 National Household Travel Survey). There may have been
+external factors such as cost of living, cost of gas, etc. which could
+influence short term mode choice, but since vehicles are owned for</li>
+<li>The vehicle availability measure in the Boston TDM32 was designed as
+an input into a trip-based demand estimation structure (TDM32). As seen
+in the table above, the ASC used for the Sufficient Vehicle case was set
+to 1, as well as other parameters being modified due to calibration. In
+my NHTS-based model, the coefficients for the sufficient case were set
+to zero, as it was the reference case.</li>
 </ol>
-<p>This report includes two attachments, ‘bos_vehavail.R’, which
-contains an approximation of the Boston TDM32 (Travel Demand Model)
-based on data from the NHTS (National Household Travel Survey).
-Differences between factors used in the Boston model and
-‘bos_vehavail.R’ include the following: 1. Not all variables in the
-Boston model were available in the NHTS dataset. Specifically:
-employment density, intersection density, or accessibility. 2. Income
-category splits were based on numeric amounts rounded to the nearest
-$5,000 based on the 2017 federal poverty level vs. the 2010 federal
-poverty level (TDM32). 3. 3.</p>
+</div>
+<div id="changes" class="section level2">
+<h2>Changes</h2>
+<p>Further modifying the model, in <code>bos_vehicleavail_ek.R</code>, I
+added a variable for the presence of partners in a household and a
+categorical variable for vehicle use frequency (daily, semi-weekly,
+semi-monthly, semi-yearly, never). The reasoning for the former was that
+partners are more likely to share vehicles. For the latter, I expected
+to see a correlation between vehicle use frequency and vehicle
+sufficiency. This indeed was the case as those who never drive has a
+coefficient of 6.22 for the zero-vehicle case. These changes increased
+the log-likelihood from -19863 to -15969.</p>
+<p>This model would not be a good input into mode choice, due to the use
+of vehicle frequency in the model for vehicle availability. As discussed
+in class, best practice is to establish vehicle availability independent
+of consumer preferences, in order for vehicle availability to be used as
+an input to consumer preferences instead of the other way around.</p>
+<p>Unaltered model:</p>
+<pre><code>Confusion Matrix and Statistics            
+Reference 
+Prediction Suff. Insuff.  Zero
+Suff.   54860    4164  1503    
+Insuff.   165     125     1    
+Zero      295       2  1493  
+
+Overall Statistics                                                           Accuracy : 0.9021                            
+95% CI : (0.8997, 0.9044)
+No Information Rate : 0.8836
+P-Value [Acc &gt; NIR] : &lt; 2.2e-16
+Kappa : 0.3205                                                       
+Mcnemar&#39;s Test P-Value : &lt; 2.2e-16         
+Statistics by Class:                       
+Class: Suff. Class: Insuff. Class: Zero 
+Sensitivity                0.9917       0.029131     0.49816 Specificity                0.2224       0.997153     0.99502 Pos Pred Value             0.9064       0.429553     0.83408 Neg Pred Value             0.7790       0.933148     0.97527 Prevalence                 0.8836       0.068538     0.04787 Detection Rate             0.8762       0.001997     0.02385 Detection Prevalence       0.9668       0.004648     0.02859 Balanced Accuracy          0.6071       0.513142     0.74659</code></pre>
+<pre><code>Log-Likelihood: -19862
+McFadden R^2:  0.27549</code></pre>
+<p>Altered model:</p>
+<pre><code>Added Coefficients:                               
+                              Estimate Std. Error  z-value  Pr(&gt;|z|)     
+car_freqNever:Insuff.         0.768590   0.222341   3.4568 0.0005466 *** car_freqNever:Zero            6.219232   0.122148  50.9155 &lt; 2.2e-16 *** car_freqSemi-monthly:Insuff.  1.161696   0.099316  11.6970 &lt; 2.2e-16 *** car_freqSemi-monthly:Zero     3.490441   0.116050  30.0769 &lt; 2.2e-16 *** car_freqSemi-weekly:Insuff.   0.575183   0.044057  13.0556 &lt; 2.2e-16 *** car_freqSemi-weekly:Zero      1.829424   0.105325  17.3694 &lt; 2.2e-16 *** car_freqSemi-yearly:Insuff.   1.169485   0.248041   4.7149 2.418e-06 *** car_freqSemi-yearly:Zero      5.449460   0.168642  32.3138 &lt; 2.2e-16 *** 
+has_partnerTRUE:Insuff.       1.478964   0.050811  29.1071 &lt; 2.2e-16 *** has_partnerTRUE:Zero          0.199161   0.108004   1.8440 0.0651805 .   
+
+Log-Likelihood: -15969 
+McFadden R^2:  0.37229  
+Likelihood ratio test : chisq = 18942 (p.value = &lt; 2.22e-16)</code></pre>
+<pre><code>Confusion Matrix and Statistics
+
+          Reference
+Prediction Suff. Insuff.  Zero
+   Suff.   54287    4064   680
+   Insuff.   182     169     6
+   Zero      285       9  1765
+
+Overall Statistics
+                                          
+               Accuracy : 0.915           
+                 95% CI : (0.9127, 0.9171)
+    No Information Rate : 0.8911          
+    P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+                                          
+                  Kappa : 0.402           
+                                          
+ Mcnemar&#39;s Test P-Value : &lt; 2.2e-16       
+
+Statistics by Class:
+
+                     Class: Suff. Class: Insuff. Class: Zero
+Sensitivity                0.9915        0.03984     0.72011
+Specificity                0.2912        0.99671     0.99502
+Pos Pred Value             0.9196        0.47339     0.85721
+Neg Pred Value             0.8067        0.93333     0.98845
+Prevalence                 0.8911        0.06904     0.03989
+Detection Rate             0.8835        0.00275     0.02872
+Detection Prevalence       0.9607        0.00581     0.03351
+Balanced Accuracy          0.6413        0.51828     0.85757</code></pre>
+<p>Adding the car use frequencies also contributed allowed more
+zero-vehicle households which were previously classified as
+vehicle-sufficient households to be correctly classified.</p>
+<p>Yet there were still a decent amount of insufficient cases predicted
+to be sufficient.</p>
+</div>
+</div>
 
 
 
