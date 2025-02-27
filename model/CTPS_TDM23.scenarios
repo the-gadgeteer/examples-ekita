@@ -1,43 +1,43 @@
     
     
 Scenario "Base"
-    
-    [Population MA] = "%InputFolder%\\zonal_reduce\\ma_population.csv"
-    [Population NHRI] = "%InputFolder%\\zonal_reduce\\nhri_population_2020_v20230518.csv"
-    [Employment MA] = "%InputFolder%\\zonal_reduce\\ma_employment.csv"
-    [Employment NHRI] = "%InputFolder%\\zonal_reduce\\nhri_employment_2020_v20230518.csv"
-    [Highway Input] = "%InputFolder%\\networks\\tdm23.1.0\\base-reduced\\tdm23_1_0_2019_ln.dbd"
-    [Transit Input] = "%InputFolder%\\networks\\tdm23.1.0\\base-reduced\\tdm23_1_0_2019_rs.rts"
-    [Transit Mode Table] = "%InputFolder%\\params\\transit_modes_2019_20231231.bin"
-    [Turn Penalties] = "%InputFolder%\\networks\\tdm23.1.0\\base-reduced\\tdm23_1_0_2019_tpen.bin"
-    [Init Speeds - am] = "%InputFolder%\\networks\\tdm23.1.0\\base-reduced\\warm_start\\base_am_speeds.bin"
-    [Init Speeds - md] = "%InputFolder%\\networks\\tdm23.1.0\\base-reduced\\warm_start\\base_md_speeds.bin"
-    [Init PnR Demand - am] = "%InputFolder%\\networks\\tdm23.1.0\\2019\\warm_start\\pnr_ta_acc_am.mtx"
-    [Special Generators] = "%InputFolder%\\zonal_reduce\\spcgen_2019_v20220915.csv"
-    emis_rate_hwy = "%InputFolder%\\params\\airquality\\RatePerDistance_y2019_v20230419.csv"
-    emis_rate_trn = "%InputFolder%\\params\\airquality\\busRate_y2025_v20230419.csv"
-    ext_vol_growth = 0
-    [Daily air trips] = 113294
-EndScenario
-    
-    
-Scenario "alt-veh-avail"
-    
+
     [Population MA] = "%InputFolder%\\zonal\\ma_population_run97-176_2019_v20240109.csv"
     [Population NHRI] = "%InputFolder%\\zonal\\nhri_population_2020_v20230518.csv"
     [Employment MA] = "%InputFolder%\\zonal\\ma_employment_run97-176_2019_v20240109.csv"
     [Employment NHRI] = "%InputFolder%\\zonal\\nhri_employment_2020_v20230518.csv"
-    [Highway Input] = "%InputFolder%\\networks\\tdm23.1.0\\Highway-edits\\tdm23_1_0_2019_ln.dbd"
-    [Transit Input] = "%InputFolder%\\networks\\tdm23.1.0\\Highway-edits\\tdm23_1_0_2019_rs.rts"
+    [Highway Input] = "%InputFolder%\\networks\\tdm23.1.0\\2019\\tdm23_1_0_2019_ln.dbd"
+    [Transit Input] = "%InputFolder%\\networks\\tdm23.1.0\\2019\\tdm23_1_0_2019_rs.rts"
     [Transit Mode Table] = "%InputFolder%\\params\\transit_modes_2019_20231231.bin"
     [Turn Penalties] = "%InputFolder%\\networks\\tdm23.1.0\\2019\\tdm23_1_0_2019_tpen.bin"
     [Init Speeds - am] = "%InputFolder%\\networks\\tdm23.1.0\\2019\\warm_start\\base_am_speeds.bin"
     [Init Speeds - md] = "%InputFolder%\\networks\\tdm23.1.0\\2019\\warm_start\\base_md_speeds.bin"
-    [Init PnR Demand - am] = "%InputFolder%\\networks\\tdm23.1.0\\2019\\warm_start\\pnr_ta_acc_am.mtx"
-    [Special Generators] = "%InputFolder%\\zonal\\spcgen_2019_v20220915.csv"
+    [Init PnR Demand - am] = "%InputFolder%\\networks\\tdm23.1.0\\2019\\warm_start\\pnr_ta_acc_am.mtx"   
+    [Special Generators] = "%InputFolder%\\zonal\\spcgen_2019_v20220915.csv"    
     emis_rate_hwy = "%InputFolder%\\params\\airquality\\RatePerDistance_y2019_v20230419.csv"
-    emis_rate_trn = "%InputFolder%\\params\\airquality\\busRate_y2025_v20230419.csv"
+    emis_rate_trn = "%InputFolder%\\params\\airquality\\busRate_y2025_v20230419.csv"    
     ext_vol_growth = 0
     [Daily air trips] = 113294
+
 EndScenario
     
+Scenario "Alternative"
+
+    [Population MA] = "%InputFolder%\\zonal\\ma_pop_more.csv"
+    [Population NHRI] = "%InputFolder%\\zonal\\nhri_population_2020_v20230518.csv"
+    [Employment MA] = "%InputFolder%\\zonal\\ma_emp_less.csv"
+    [Employment NHRI] = "%InputFolder%\\zonal\\nhri_employment_2020_v20230518.csv"
+    [Highway Input] = "%InputFolder%\\networks\\tdm23.1.0\\alternative\\tdm23_1_0_2019_ln.dbd"
+    [Transit Input] = "%InputFolder%\\networks\\tdm23.1.0\\alternative\\tdm23_1_0_2019_rs.rts"
+    [Transit Mode Table] = "%InputFolder%\\params\\transit_modes_2019_20231231.bin"
+    [Turn Penalties] = "%InputFolder%\\networks\\tdm23.1.0\\alternative\\tdm23_1_0_2019_tpen.bin"
+    [Init Speeds - am] = "%InputFolder%\\networks\\tdm23.1.0\\alternative\\warm_start\\base_am_speeds.bin"
+    [Init Speeds - md] = "%InputFolder%\\networks\\tdm23.1.0\\alternative\\warm_start\\base_md_speeds.bin"
+    [Init PnR Demand - am] = "%InputFolder%\\networks\\tdm23.1.0\\alternative\\warm_start\\pnr_ta_acc_am.mtx"   
+    [Special Generators] = "%InputFolder%\\zonal\\spcgen_2019_v20220915.csv"    
+    emis_rate_hwy = "%InputFolder%\\params\\airquality\\RatePerDistance_y2019_v20230419.csv"
+    emis_rate_trn = "%InputFolder%\\params\\airquality\\busRate_y2025_v20230419.csv"    
+    ext_vol_growth = 0
+    [Daily air trips] = 113294
+
+EndScenario    

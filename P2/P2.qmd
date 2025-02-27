@@ -12,7 +12,7 @@ The purpose of this assignment is for you to get some experience estimating and 
 
 -   Reading the documentation for the vehicle availability submodel of the Boston Region Metropolitan Planning Organization's regional travel demand model ([TDM23](https://www.ctps.org/travel-demand-model)),
 
--   Estimating vehicle availability model using data using similar predictors to those in the the TDM23 vehicle availability submodel and data from the 2017 National Household Travel Survey,
+-   Estimating a vehicle availability model using data using similar predictors to those in the TDM23 vehicle availability submodel and data from the 2017 National Household Travel Survey,
 
 -   Proposing an alternative vehicle availability model for the 2017 National Household Travel Survey,
 
@@ -374,6 +374,7 @@ hh_data_test <- hh_data |>
 The mlogit package is useful for multinomial logistic regression, but it requires the data to be in a particular format (called dfidx) that includes information about which alternatives are available in each choice situation. In this case, all alternatives are available to all choosers in all choice situations and all variables describe the chooser and choice situation rather than the alternative, so you can use the function `fn_make_dfidx` in the `mlogit_helpers.R` file to reformat your data into the format that the `mlogit` package requires.
 
 ```{r}
+
 veh_dfidx_train <- fn_make_dfidx(hh_data_train,
                                 "HOUSEID",
                                 "veh_avail")
@@ -388,6 +389,7 @@ veh_dfidx_test <- fn_make_dfidx(hh_data_test,
 Now we can estimate our multinomial logistic regression using the `mlogit` function.
 
 ```{r}
+
 model_veh <- mlogit(choice ~ 0 | 
                       WRKCOUNT +
                       n_child +
@@ -399,6 +401,7 @@ model_veh <- mlogit(choice ~ 0 |
                       density | 0,
                            veh_dfidx_train,
                            reflevel = "Suff.")
+
 ```
 
 And now we can take a look at the results of our model.

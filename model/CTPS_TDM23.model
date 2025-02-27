@@ -538,11 +538,11 @@ Macro "Report.Ride-Source Non-Revenue" (Args,Result)
     }
 EndMacro
 
+
 Macro "Person to Vehicle" (Args,Result)
     Attributes = {
         {"Class", {"GISDK"}},
-        {"MacroNames",{"Person and Vehicle Trips", 
-                        "Summarize TOD"}}
+        {"MacroNames",{"Person and Vehicle Trips","Summarize TOD"}}
     }
 Data:
     Out({ Args.[Veh Trips - am] })
@@ -619,7 +619,7 @@ Data:
     Out({ Args.[Highway AssignLog - am] })
     Out({ Args.[HighwayFlows - am] })
     Out({ Args.[rmse_am] })
-    Out({ Args.[prmse_am] })    
+    Out({ Args.[prmse_am] })
 EndMacro
 
 
@@ -636,7 +636,7 @@ Data:
     Out({ Args.[Highway AssignLog - md] })
     Out({ Args.[HighwayFlows - md] })
     Out({ Args.[rmse_md] })
-    Out({ Args.[prmse_md] })   
+    Out({ Args.[prmse_md] })
 EndMacro
 
 
@@ -743,6 +743,7 @@ Body:
     FlowChartLink(model,"NT Highway Assignment","Highway Summary",True,,)
     Return(model)
 EndMacro
+
 
 Macro "Report.Highway PM NT Assignment" (Args,Result)
     Attributes = {

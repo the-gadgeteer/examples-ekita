@@ -9,7 +9,7 @@ Macro "Model.Attributes" (Args,Result)
         {"CloseOpenFiles", 1},
         {"ResizeImage", 1},
         {"CodeUI", "ui\\tdm23_ui.dbd"},
-        {"DebugMode", 0},
+        {"DebugMode", 1},
         {"DrawParameterTypes", "All Parameter Types"},
         {"ExpandStages", "Side by Side"},
         {"HideBanner", null},
@@ -67,6 +67,7 @@ EndMacro
 
 
 Macro "Model.OnModelReady" (Args,Result)
+Body:
     Return({"Base Folder": "%Model Folder%"})
 EndMacro
 

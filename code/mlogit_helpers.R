@@ -15,34 +15,33 @@ fn_make_dfidx <- function(my_situation,
                           my_id, 
                           my_alts) {
   
-  options <- unique(my_situation[[my_alts]])
+  options <- base::unique(my_situation[[my_alts]])
   
-  colnames(my_situation)[colnames(my_situation) == my_alts] ="alternatives"
-  colnames(my_situation)[colnames(my_situation) == my_id] ="id"
+  base::colnames(my_situation)[colnames(my_situation) == my_alts] ="alternatives"
+  base::colnames(my_situation)[colnames(my_situation) == my_id] ="id"
   
   rep_trips <- my_situation |>
-    mutate(avail_choice = options[1]) 
+    dplyr::mutate(avail_choice = options[1]) 
   
   for (i in 2:length(options)){
     next_trips <- my_situation |>
-      mutate(avail_choice = options[i])
-    rep_trips = bind_rows(rep_trips, next_trips)
+      dplyr::mutate(avail_choice = options[i])
+    rep_trips = dplyr::bind_rows(rep_trips, next_trips)
   }
   
   rep_trips <- rep_trips |>
     dplyr::arrange(id) |>
-    mutate(choice = ifelse(alternatives == avail_choice, TRUE, FALSE)) |> 
-    relocate(choice) |>
-    relocate(avail_choice) |>
-    relocate(id) |>
-    select(-alternatives) 
+    dplyr::mutate(choice = ifelse(alternatives == avail_choice, TRUE, FALSE)) |> 
+    dplyr::relocate(choice) |>
+    dplyr::relocate(avail_choice) |>
+    dplyr::relocate(id) |>
+    dplyr::select(-alternatives) 
   
-  dfidx(rep_trips, drop.index = FALSE)
+  dfidx <- dfidx::dfidx(rep_trips, drop.index = FALSE)
 }
 
 ## A function to make predictions from an mlogit model varying
 ## one variable and holding the others (mostly) constant at their means
-
 fn_predictions <- function(my_model,
                            to_vary,
                            max_sample) {

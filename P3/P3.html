@@ -1,0 +1,2155 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>P3: Trip Generation</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="P3_files/libs/clipboard/clipboard.min.js"></script>
+<script src="P3_files/libs/quarto-html/quarto.js"></script>
+<script src="P3_files/libs/quarto-html/popper.min.js"></script>
+<script src="P3_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="P3_files/libs/quarto-html/anchor.min.js"></script>
+<link href="P3_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="P3_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="P3_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="P3_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="P3_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#load-libraries" id="toc-load-libraries" class="nav-link active" data-scroll-target="#load-libraries">Load libraries</a></li>
+  <li><a href="#load-datasets" id="toc-load-datasets" class="nav-link" data-scroll-target="#load-datasets">Load datasets</a></li>
+  <li><a href="#examine-trip-purposes" id="toc-examine-trip-purposes" class="nav-link" data-scroll-target="#examine-trip-purposes">Examine trip purposes</a>
+  <ul class="collapse">
+  <li><a href="#link-up-unlinked-trips" id="toc-link-up-unlinked-trips" class="nav-link" data-scroll-target="#link-up-unlinked-trips">Link up unlinked trips</a></li>
+  <li><a href="#construct-trip-purposes" id="toc-construct-trip-purposes" class="nav-link" data-scroll-target="#construct-trip-purposes">Construct trip purposes</a></li>
+  <li><a href="#summarize-trip-purposes" id="toc-summarize-trip-purposes" class="nav-link" data-scroll-target="#summarize-trip-purposes">Summarize trip purposes</a></li>
+  </ul></li>
+  <li><a href="#select-and-construct-predictor-variables" id="toc-select-and-construct-predictor-variables" class="nav-link" data-scroll-target="#select-and-construct-predictor-variables">Select and construct predictor variables</a></li>
+  <li><a href="#data-visualization" id="toc-data-visualization" class="nav-link" data-scroll-target="#data-visualization">Data visualization</a></li>
+  <li><a href="#estimate-models" id="toc-estimate-models" class="nav-link" data-scroll-target="#estimate-models">Estimate models</a>
+  <ul class="collapse">
+  <li><a href="#linear-regression" id="toc-linear-regression" class="nav-link" data-scroll-target="#linear-regression">Linear regression</a></li>
+  <li><a href="#poisson-regression" id="toc-poisson-regression" class="nav-link" data-scroll-target="#poisson-regression">Poisson regression</a></li>
+  <li><a href="#zero-inflated-poisson-regression" id="toc-zero-inflated-poisson-regression" class="nav-link" data-scroll-target="#zero-inflated-poisson-regression">Zero-inflated Poisson regression</a></li>
+  <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section"></a></li>
+  <li><a href="#discrete-choice-regression" id="toc-discrete-choice-regression" class="nav-link" data-scroll-target="#discrete-choice-regression">Discrete-choice regression</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">P3: Trip Generation</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>The purpose of this assignment is for you to get some experience estimating and interpreting regression models for count data by</p>
+<ul>
+<li><p>Reading the documentation for the trip generation submodel of the Boston Region Metropolitan Planning Organization’s regional travel demand model (<a href="https://www.ctps.org/travel-demand-model">TDM23</a>),</p></li>
+<li><p>Estimating one or more trip generation models for a trip purpose that is not represented in TDM23.</p></li>
+<li><p>Interpreting the model results to explain the influence that household and built-environment characteristics have on trip generation for the trip purpose you have selected.</p></li>
+</ul>
+<section id="load-libraries" class="level2">
+<h2 class="anchored" data-anchor-id="load-libraries">Load libraries</h2>
+<p>This analysis uses the following packages:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(srvyr)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mlogit)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(caret)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pscl)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">here</span>(<span class="st">"code"</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>     <span class="st">"mlogit_helpers.R"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">source</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="load-datasets" class="level2">
+<h2 class="anchored" data-anchor-id="load-datasets">Load datasets</h2>
+<p>This analysis uses household-level, person-level, and trip-level data from the 2017 National Household Travel Survey. Keep in mind that TDM23 is meant to represent travel on a “typical weekday”, so for comparison purposes, we’ll filter our data to only include participants who completed their travel diary on a weekday.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>hh_data <span class="ot">&lt;-</span> <span class="fu">here</span>(<span class="st">"data"</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>                <span class="st">"NHTS"</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>                <span class="st">"hhpub.csv"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">read_csv</span>(<span class="at">show_col_types =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(TRAVDAY <span class="sc">!=</span> <span class="st">"01"</span>,</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>          TRAVDAY <span class="sc">!=</span> <span class="st">"07"</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>person_data <span class="ot">&lt;-</span> <span class="fu">here</span>(<span class="st">"data"</span>,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"NHTS"</span>,</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"perpub.csv"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">read_csv</span>(<span class="at">show_col_types =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(TRAVDAY <span class="sc">!=</span> <span class="st">"01"</span>,</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>          TRAVDAY <span class="sc">!=</span> <span class="st">"07"</span>)</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>trip_data <span class="ot">&lt;-</span> <span class="fu">here</span>(<span class="st">"data"</span>,</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"NHTS"</span>,</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"trippub.csv"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">read_csv</span>(<span class="at">show_col_types =</span> <span class="cn">FALSE</span>)  <span class="sc">|&gt;</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(TRAVDAY <span class="sc">!=</span> <span class="st">"01"</span>,</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>          TRAVDAY <span class="sc">!=</span> <span class="st">"07"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(HOUSEID,</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>         PERSONID,</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>         TDTRPNUM,</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>         TRIPPURP,</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>         WHYFROM,</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>         WHYTO,</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>         TRPTRANS, </span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>         R_AGE,</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>         EDUC,</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>         WTTRDFIN)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="examine-trip-purposes" class="level2">
+<h2 class="anchored" data-anchor-id="examine-trip-purposes">Examine trip purposes</h2>
+<p>Refer to the TDM23 Structures and Performance report (<a href="https://ctps.org/pub/tdm23_sc/tdm23.1.0/TDM23_Structures%20and%20Performance.pdf" class="uri">https://ctps.org/pub/tdm23_sc/tdm23.1.0/TDM23_Structures%20and%20Performance.pdf</a>) for details on the trip generation sub-model of the TDM23 model (beginning on page 73).</p>
+<p>TDM23 includes two worker-level trip production models, one for each of two trip purposes:</p>
+<ul>
+<li><p><strong>Home-based work trips</strong> are what you would typically think of as commute trips: trips between a person’s home and their place of work.</p></li>
+<li><p><strong>Non-home-based work trips</strong> are trips that begin or end at a person’s place of work, but neither begin nor end at that person’s home.</p></li>
+</ul>
+<p>TDM23 also includes four household-level trip production models, one for each of four trip purposes:</p>
+<ul>
+<li><p><strong>Home-based personal business:</strong> see Table 30 of the Structures and Performance Report (page 74)</p></li>
+<li><p><strong>Home-based school:</strong> see Table 30 of the Structures and Performance Report (page 74) (note that university trips are handled in a separate submodel entirely).</p></li>
+<li><p><strong>Home-based social/recreation:</strong> see Table 30 of the Structures and Performance Report (page 74)</p></li>
+<li><p><strong>Non-home-based non-work trips</strong> are trips that do not have the home or the work place as a trip end.</p></li>
+</ul>
+<p>How common is each of these trip purposes? The trips data set has two variables that you can use to construct a trip purpose variable that aligns with the above:</p>
+<ul>
+<li><p><strong>WHYTO:</strong> What was the primary activity at the trip destination</p></li>
+<li><p><strong>WHYFROM:</strong> What was the primary activity at the trip origin.</p></li>
+</ul>
+<p>You can see the codes for the all possible activities here in the online codebook (these are the codes for WHYTO, but they are the same for WHYFROM): <a href="https://nhts.ornl.gov/tables09/CodebookPage.aspx?id=1375" class="uri">https://nhts.ornl.gov/tables09/CodebookPage.aspx?id=1375</a></p>
+<p>You may notice that the trips data also has a trip-purpose variable with the following categories:</p>
+<ul>
+<li><p>HBO (Home-based other)</p></li>
+<li><p>HBSHOP (Home-based shopping)</p></li>
+<li><p>HBSOCREC (Home-based social recreation)</p></li>
+<li><p>HBW (Home-based work)</p></li>
+<li><p>NHB (non-home-based)</p></li>
+</ul>
+<p>These are slightly different than the categories TDM23 uses, so we’ll construct our own trip purpose variable that better aligns with TDM23.</p>
+<section id="link-up-unlinked-trips" class="level3">
+<h3 class="anchored" data-anchor-id="link-up-unlinked-trips">Link up unlinked trips</h3>
+<p>One of the origin/destination purposes that can be specified is to change to another type of transportation. For example, here is a the full set of travel-day trips for one individual:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>trip_data <span class="sc">|&gt;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(HOUSEID <span class="sc">==</span> <span class="st">"40173222"</span> <span class="sc">&amp;</span> PERSONID <span class="sc">==</span> <span class="st">"03"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 10%">
+<col style="width: 7%">
+<col style="width: 11%">
+<col style="width: 7%">
+<col style="width: 6%">
+<col style="width: 11%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: right;">HOUSEID</th>
+<th style="text-align: left;">PERSONID</th>
+<th style="text-align: left;">TDTRPNUM</th>
+<th style="text-align: left;">TRIPPURP</th>
+<th style="text-align: left;">WHYFROM</th>
+<th style="text-align: left;">WHYTO</th>
+<th style="text-align: left;">TRPTRANS</th>
+<th style="text-align: right;">R_AGE</th>
+<th style="text-align: left;">EDUC</th>
+<th style="text-align: right;">WTTRDFIN</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">40173222</td>
+<td style="text-align: left;">03</td>
+<td style="text-align: left;">01</td>
+<td style="text-align: left;">HBO</td>
+<td style="text-align: left;">01</td>
+<td style="text-align: left;">08</td>
+<td style="text-align: left;">03</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: left;">02</td>
+<td style="text-align: right;">424376.1</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">40173222</td>
+<td style="text-align: left;">03</td>
+<td style="text-align: left;">02</td>
+<td style="text-align: left;">NHB</td>
+<td style="text-align: left;">08</td>
+<td style="text-align: left;">07</td>
+<td style="text-align: left;">11</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: left;">02</td>
+<td style="text-align: right;">424376.1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">40173222</td>
+<td style="text-align: left;">03</td>
+<td style="text-align: left;">03</td>
+<td style="text-align: left;">HBO</td>
+<td style="text-align: left;">07</td>
+<td style="text-align: left;">01</td>
+<td style="text-align: left;">03</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: left;">02</td>
+<td style="text-align: right;">424376.1</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>This person made three trips on the travel day:</p>
+<ul>
+<li><p>Trip 1 was a trip by car (<code>03</code>) from home (<code>01</code>) to school (<code>08</code>).</p></li>
+<li><p>Trip 2 was a trip by bus (<code>11</code>) from school (<code>08</code>) to change transportation modes (<code>07</code>).</p></li>
+<li><p>Trip 3 was a trip by car (<code>03</code>) from changing transportation modes (<code>07</code>) to home (<code>01</code>).</p></li>
+</ul>
+<p>For our analysis, it will be better to treat trips 2 and 3 above as a single trip from school to home, so we’ll link trips like this together. Here’s an easy-ish approach to do that. It would be a little trickier if we wanted to keep track of all the modes that were used on the trip (which we don’t need to do for this assignment, but we will need to do on a subsequent assignment).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>trip_data <span class="ot">&lt;-</span> trip_data <span class="sc">|&gt;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">transfer_trip =</span> WHYTO <span class="sc">==</span> <span class="st">"07"</span> <span class="sc">|</span> WHYFROM <span class="sc">==</span> <span class="st">"07"</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>transfer_trips <span class="ot">&lt;-</span> trip_data <span class="sc">|&gt;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(transfer_trip) <span class="sc">|&gt;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(WHYTO <span class="sc">!=</span> WHYFROM) <span class="co"># remove trips that begin AND end with a transfer</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>next_destination <span class="ot">&lt;-</span> <span class="fu">c</span>(transfer_trips<span class="sc">$</span>WHYTO[<span class="dv">2</span><span class="sc">:</span><span class="fu">nrow</span>(transfer_trips)], <span class="st">"last"</span>)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>transfer_trips <span class="ot">&lt;-</span> transfer_trips <span class="sc">|&gt;</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">next_destination =</span> next_destination) <span class="sc">|&gt;</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">WHYTO =</span> <span class="fu">ifelse</span>(WHYTO <span class="sc">==</span> <span class="st">"07"</span>, next_destination, WHYTO)) <span class="sc">|&gt;</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(WHYFROM <span class="sc">!=</span> <span class="st">"07"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>next_destination)</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>trip_data <span class="ot">&lt;-</span> trip_data <span class="sc">|&gt;</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span>transfer_trip) <span class="sc">|&gt;</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rbind</span>(transfer_trips) <span class="sc">|&gt;</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>TRIPPURP, <span class="sc">-</span>TRPTRANS, <span class="sc">-</span>transfer_trip)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now we can check back in on our friend who took the bus and the car home from school:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>trip_data <span class="sc">|&gt;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(HOUSEID <span class="sc">==</span> <span class="st">"40173222"</span> <span class="sc">&amp;</span> PERSONID <span class="sc">==</span> <span class="st">"03"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">HOUSEID</th>
+<th style="text-align: left;">PERSONID</th>
+<th style="text-align: left;">TDTRPNUM</th>
+<th style="text-align: left;">WHYFROM</th>
+<th style="text-align: left;">WHYTO</th>
+<th style="text-align: right;">R_AGE</th>
+<th style="text-align: left;">EDUC</th>
+<th style="text-align: right;">WTTRDFIN</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">40173222</td>
+<td style="text-align: left;">03</td>
+<td style="text-align: left;">01</td>
+<td style="text-align: left;">01</td>
+<td style="text-align: left;">08</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: left;">02</td>
+<td style="text-align: right;">424376.1</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">40173222</td>
+<td style="text-align: left;">03</td>
+<td style="text-align: left;">02</td>
+<td style="text-align: left;">08</td>
+<td style="text-align: left;">01</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: left;">02</td>
+<td style="text-align: right;">424376.1</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>And we can see that the trip home from school has been combined into a single trip.</p>
+</section>
+<section id="construct-trip-purposes" class="level3">
+<h3 class="anchored" data-anchor-id="construct-trip-purposes">Construct trip purposes</h3>
+<p>Now we can start constructing our trip purpose variable that’s consistent with TDM23.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>home <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"01"</span>, <span class="st">"02"</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>work <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"03"</span>, <span class="st">"04"</span>, <span class="st">"05"</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>per_bus <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"06"</span>, <span class="st">"11"</span>, <span class="st">"12"</span>, <span class="st">"14"</span>, <span class="st">"18"</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>soc_rec <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"10"</span>, <span class="st">"13"</span>, <span class="st">"15"</span>, <span class="st">"16"</span>, <span class="st">"17"</span>, <span class="st">"19"</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>school <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"08"</span>, <span class="st">"09"</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>lt_hs_grad <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"-1"</span>, <span class="st">"-7"</span>, <span class="st">"-8"</span>, <span class="st">"01"</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>trip_data <span class="ot">&lt;-</span> trip_data <span class="sc">|&gt;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">purpose =</span> <span class="fu">case_when</span>(WHYTO <span class="sc">%in%</span> home <span class="sc">&amp;</span> WHYFROM <span class="sc">%in%</span> work <span class="sc">~</span> <span class="st">"HBW"</span>,</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>                             WHYTO <span class="sc">%in%</span> work <span class="sc">&amp;</span> WHYFROM <span class="sc">%in%</span> home <span class="sc">~</span> <span class="st">"HBW"</span>,</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>                             WHYTO <span class="sc">%in%</span> work <span class="sc">|</span> WHYFROM <span class="sc">%in%</span> work <span class="sc">~</span> <span class="st">"NHBW"</span>,</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>                             WHYTO <span class="sc">%in%</span> home <span class="sc">&amp;</span> WHYFROM <span class="sc">%in%</span> per_bus <span class="sc">~</span> <span class="st">"HBPB"</span>,</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>                             WHYTO <span class="sc">%in%</span> per_bus <span class="sc">&amp;</span> WHYFROM <span class="sc">%in%</span> home <span class="sc">~</span> <span class="st">"HBPB"</span>,</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>                             WHYTO <span class="sc">%in%</span> home <span class="sc">&amp;</span> WHYFROM <span class="sc">%in%</span> soc_rec <span class="sc">~</span> <span class="st">"HBSR"</span>,</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>                             WHYTO <span class="sc">%in%</span> soc_rec <span class="sc">&amp;</span> WHYFROM <span class="sc">%in%</span> home <span class="sc">~</span> <span class="st">"HBSR"</span>,</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>                             WHYTO <span class="sc">%in%</span> home <span class="sc">&amp;</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>                               WHYFROM <span class="sc">%in%</span> school <span class="sc">&amp;</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>                               EDUC <span class="sc">%in%</span> lt_hs_grad <span class="sc">&amp;</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>                               R_AGE <span class="sc">&lt;</span> <span class="dv">21</span> <span class="sc">~</span> <span class="st">"HBSC"</span>,</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>                             WHYTO <span class="sc">%in%</span> school <span class="sc">&amp;</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>                               WHYFROM <span class="sc">%in%</span> home <span class="sc">&amp;</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>                               EDUC <span class="sc">%in%</span> lt_hs_grad <span class="sc">&amp;</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>                               R_AGE <span class="sc">&lt;</span> <span class="dv">21</span> <span class="sc">~</span> <span class="st">"HBSC"</span>,</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>                             WHYTO <span class="sc">%in%</span> home <span class="sc">&amp;</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>                               WHYFROM <span class="sc">%in%</span> school <span class="sc">~</span> <span class="st">"HBU"</span>,</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>                             WHYTO <span class="sc">%in%</span> school <span class="sc">&amp;</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>                               WHYFROM <span class="sc">%in%</span> home <span class="sc">~</span> <span class="st">"HBU"</span>,</span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>                             WHYTO <span class="sc">%in%</span> home <span class="sc">|</span> WHYFROM <span class="sc">%in%</span> home <span class="sc">~</span> <span class="st">"HBO"</span>,</span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>                             <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"NHBNW"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="summarize-trip-purposes" class="level3">
+<h3 class="anchored" data-anchor-id="summarize-trip-purposes">Summarize trip purposes</h3>
+<p>Now we can summarize the number of trips in our sample that are categorized into each trip purpose.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>trip_data <span class="sc">|&gt;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(purpose) <span class="sc">|&gt;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="st">`</span><span class="at">Number of trips (unweighted)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">Percent of trips (unweighted)</span><span class="st">`</span> <span class="ot">=</span> </span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>           <span class="dv">100</span> <span class="sc">*</span> <span class="st">`</span><span class="at">Number of trips (unweighted)</span><span class="st">`</span><span class="sc">/</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>           <span class="fu">sum</span>(<span class="st">`</span><span class="at">Number of trips (unweighted)</span><span class="st">`</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(<span class="st">`</span><span class="at">Percent of trips (unweighted)</span><span class="st">`</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">format.args =</span> <span class="fu">list</span>(<span class="at">big.mark =</span> <span class="st">","</span>), <span class="at">digits =</span> <span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">purpose</th>
+<th style="text-align: right;">Number of trips (unweighted)</th>
+<th style="text-align: right;">Percent of trips (unweighted)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">HBPB</td>
+<td style="text-align: right;">181,115</td>
+<td style="text-align: right;">25</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">NHBNW</td>
+<td style="text-align: right;">156,946</td>
+<td style="text-align: right;">22</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">HBSR</td>
+<td style="text-align: right;">135,063</td>
+<td style="text-align: right;">19</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">HBW</td>
+<td style="text-align: right;">116,174</td>
+<td style="text-align: right;">16</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">NHBW</td>
+<td style="text-align: right;">86,540</td>
+<td style="text-align: right;">12</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">HBSC</td>
+<td style="text-align: right;">28,700</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">HBO</td>
+<td style="text-align: right;">19,540</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">HBU</td>
+<td style="text-align: right;">5,762</td>
+<td style="text-align: right;">1</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>And here are the estimated numbers of trips in the full population (incorporating survey weights).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>trip_data <span class="sc">|&gt;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_survey_design</span>(<span class="at">weights =</span> WTTRDFIN) <span class="sc">|&gt;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(purpose) <span class="sc">|&gt;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">survey_tally</span>() <span class="sc">|&gt;</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">Percent of trips (weighted)</span><span class="st">`</span> <span class="ot">=</span>  <span class="dv">100</span><span class="sc">*</span>n <span class="sc">/</span> <span class="fu">sum</span>(n)) <span class="sc">|&gt;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="st">`</span><span class="at">Number of trips (weighted)</span><span class="st">`</span> <span class="ot">=</span> n) <span class="sc">|&gt;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(purpose, </span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">Number of trips (weighted)</span><span class="st">`</span>,</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>         <span class="st">`</span><span class="at">Percent of trips (weighted)</span><span class="st">`</span>) <span class="sc">|&gt;</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(<span class="st">`</span><span class="at">Percent of trips (weighted)</span><span class="st">`</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">format.args =</span> <span class="fu">list</span>(<span class="at">big.mark =</span> <span class="st">","</span>), <span class="at">digits =</span> <span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">purpose</th>
+<th style="text-align: right;">Number of trips (weighted)</th>
+<th style="text-align: right;">Percent of trips (weighted)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">HBPB</td>
+<td style="text-align: right;">64,698,488,450</td>
+<td style="text-align: right;">24</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">NHBNW</td>
+<td style="text-align: right;">52,124,859,397</td>
+<td style="text-align: right;">19</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">HBW</td>
+<td style="text-align: right;">47,111,751,625</td>
+<td style="text-align: right;">17</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">HBSR</td>
+<td style="text-align: right;">47,018,631,394</td>
+<td style="text-align: right;">17</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">NHBW</td>
+<td style="text-align: right;">33,262,649,444</td>
+<td style="text-align: right;">12</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">HBSC</td>
+<td style="text-align: right;">15,654,656,480</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">HBO</td>
+<td style="text-align: right;">6,464,175,831</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">HBU</td>
+<td style="text-align: right;">3,533,624,475</td>
+<td style="text-align: right;">1</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>You can see that home-based personal business trips are the most common trip purpose, followed by non-home-based non-work trips. The next two most common trip purposes are home-based work trips and home-based social/recreational trips (and the weighting effects the relative ranks of those). Home-based work trips represent less than 20 percent of all trips, which should give us pause when we consider the emphasis that transportation planners have historically placed on the commute trip.</p>
+<p><em>For this assignment, you should select (or define) a trip purpose that is not included in TDM23. You don’t need to limit your analysis to weekdays (and in fact, you could limit it to weekends if you want to). You can do an analysis at the household level or at the individual level. If you want, your selected trip purpose can be broader than any in TDM23 (e.g.&nbsp;“all trips”) or more narrow (e.g.&nbsp;health care trips). You can also limit your analysis to a particular population (e.g.&nbsp;seniors or households with children). Keep in mind that if you want to learn something about what makes the travel behavior of a particular population unique, you should not limit your analysis to that population. Better to include a broader population in your sample and include a variable to represent the effect of being in your population of interest.</em></p>
+<p>For the rest of this example, I will focus on home-based work trips (as defined in TDM23), and I will construct an initial model that follows the approach used for TDM23.</p>
+</section>
+</section>
+<section id="select-and-construct-predictor-variables" class="level2">
+<h2 class="anchored" data-anchor-id="select-and-construct-predictor-variables">Select and construct predictor variables</h2>
+<p>TDM23 predicts the number of home-based work trips (at the worker level) using four predictors:</p>
+<ul>
+<li><p>Number of household seniors</p></li>
+<li><p>Number of household workers</p></li>
+<li><p>Household vehicle availability category</p></li>
+<li><p>Household income category</p></li>
+</ul>
+<p>All of these were also included in the vehicle availability model, and we can construct them at the household level the same way we did for the vehicle availability assignment.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>n_seniors <span class="ot">&lt;-</span> person_data <span class="sc">|&gt;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">is_senior =</span> R_AGE <span class="sc">&gt;</span> <span class="dv">64</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(HOUSEID) <span class="sc">|&gt;</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n_seniors =</span> <span class="fu">sum</span>(is_senior))</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>hh_data <span class="ot">&lt;-</span> hh_data <span class="sc">|&gt;</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">veh_avail =</span> <span class="fu">case_when</span>(HHVEHCNT <span class="sc">==</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">"Zero"</span>,</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>                               DRVRCNT <span class="sc">&gt;</span> HHVEHCNT <span class="sc">~</span> <span class="st">"Insuff."</span>,</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>                               <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Suff."</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">HHFAMINC =</span> <span class="fu">as.numeric</span>(HHFAMINC)) <span class="sc">|&gt;</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(HHFAMINC <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">income =</span> <span class="fu">case_when</span>(HHFAMINC <span class="sc">&lt;</span> <span class="dv">4</span> <span class="sc">~</span> <span class="st">"low"</span>,</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>                             HHFAMINC <span class="sc">&lt;</span> <span class="dv">5</span> <span class="sc">&amp;</span> HHSIZE <span class="sc">&gt;</span> <span class="dv">1</span> <span class="sc">~</span> <span class="st">"low"</span>,</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>                             HHFAMINC <span class="sc">&lt;</span> <span class="dv">6</span> <span class="sc">&amp;</span> HHSIZE <span class="sc">&gt;</span> <span class="dv">3</span> <span class="sc">~</span> <span class="st">"low"</span>,</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>                             HHFAMINC <span class="sc">&lt;</span> <span class="dv">7</span> <span class="sc">&amp;</span> HHSIZE <span class="sc">&gt;</span> <span class="dv">5</span> <span class="sc">~</span> <span class="st">"low"</span>,</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>                             HHFAMINC <span class="sc">&lt;</span> <span class="dv">8</span> <span class="sc">&amp;</span> HHSIZE <span class="sc">&gt;</span> <span class="dv">7</span> <span class="sc">~</span> <span class="st">"low"</span>,</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>                             HHFAMINC <span class="sc">&gt;</span> <span class="dv">8</span> <span class="sc">~</span> <span class="st">"high"</span>,</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>                            <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"middle"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">income =</span> <span class="fu">factor</span>(income, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"low"</span>, <span class="st">"middle"</span>, <span class="st">"high"</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(n_seniors) <span class="sc">|&gt;</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(HOUSEID,</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>         HHSIZE,</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>         WRKCOUNT,</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>         n_seniors,</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>         veh_avail,</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>         income)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>It’s interesting that, even though the home-based-work trip generation model is applied at the level of the individual worker, it does not include any individual-level variables (like age, gender, or race). I’ll add a couple individual level variables like to my worker-level dataset in case I want to include them in an alternative model.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>workers <span class="ot">&lt;-</span> person_data <span class="sc">|&gt;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(WORKER <span class="sc">==</span> <span class="st">"01"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(HOUSEID, PERSONID, R_SEX, WKFTPT, R_RACE, R_AGE) <span class="sc">|&gt;</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">WKFTPT =</span> <span class="fu">as.numeric</span>(WKFTPT)) <span class="sc">|&gt;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(WKFTPT <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">female =</span> R_SEX <span class="sc">==</span> <span class="st">"02"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">part_time =</span> WKFTPT <span class="sc">==</span> <span class="dv">2</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(hh_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>And now I’ll count the number of home-based work trips and add that to my worker dataset.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>hbw_trips <span class="ot">&lt;-</span> trip_data <span class="sc">|&gt;</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(purpose <span class="sc">==</span> <span class="st">"HBW"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(HOUSEID, PERSONID) <span class="sc">|&gt;</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">hbw_trips =</span> <span class="fu">n</span>())</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>workers <span class="ot">&lt;-</span> workers <span class="sc">|&gt;</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(hbw_trips) <span class="sc">|&gt;</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">replace_na</span>(<span class="fu">list</span>(<span class="at">hbw_trips =</span> <span class="dv">0</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">income =</span> <span class="fu">factor</span>(income, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"low"</span>, <span class="st">"middle"</span>, <span class="st">"high"</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="data-visualization" class="level2">
+<h2 class="anchored" data-anchor-id="data-visualization">Data visualization</h2>
+<p>Let’s take a look at the distribution of trip counts for each of these trip purposes. Here is the histogram for home-based work trips</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(workers) <span class="sc">+</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x =</span> hbw_trips),</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>                 <span class="at">binwidth =</span> <span class="dv">1</span>,</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">color =</span> <span class="st">"gray"</span>,</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">fill =</span> <span class="st">"lightgreen"</span>) <span class="sc">+</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">name =</span> <span class="st">"Number of home-based work trips"</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>                     <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">12</span>, <span class="at">by=</span><span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">name =</span> <span class="st">"Number of workers in sample"</span>) <span class="sc">+</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="P3_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This is not a normal distributions, which may suggest that a linear regression model is not going to be the most appropriate.</p>
+<p>Trip counts are an example of count data - values that represent counts of things. Count data commonly follow a poisson distribution or a negative binomial distribution. The main difference between a poisson distribution and a negative binomal distribution is that, in a poisson distribution, the standard deviation will be approximately equal to the mean, and in a negative binomial distribution, the standard deviation might be much greater than the mean (e.g.&nbsp;the data may be over-dispersed for a Poisson distribution). Let’s check the standard deviations and means of out two trip count variables.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>workers <span class="sc">|&gt;</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="st">`</span><span class="at">Average count of HBW trips</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">mean</span>(hbw_trips),</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>            <span class="st">`</span><span class="at">Standard deviation</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">sd</span>(hbw_trips)) <span class="sc">|&gt;</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">Average count of HBW trips</th>
+<th style="text-align: right;">Standard deviation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1.126</td>
+<td style="text-align: right;">0.993</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>For home-based work trips, the mean and standard deviation are both about one, so a poisson regression might be appropriate.</p>
+</section>
+<section id="estimate-models" class="level2">
+<h2 class="anchored" data-anchor-id="estimate-models">Estimate models</h2>
+<p>I’m going to demonstrate the following types of models:</p>
+<ul>
+<li><p>Linear regression</p></li>
+<li><p>Poisson regression</p></li>
+<li><p>Zero-inflated Poisson regression</p></li>
+<li><p>Discrete choice (review)</p></li>
+</ul>
+<section id="linear-regression" class="level3">
+<h3 class="anchored" data-anchor-id="linear-regression">Linear regression</h3>
+<p>TDM is using a linear regression model, so we’ll start with that approach.</p>
+<p>Here is a linear model predicting home-based work trips based on the variables that are included in the TDM23 model.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>hbw_model_1 <span class="ot">&lt;-</span> <span class="fu">lm</span>(hbw_trips <span class="sc">~</span> n_seniors <span class="sc">+</span> WRKCOUNT <span class="sc">+</span> veh_avail <span class="sc">+</span> income, </span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>   <span class="at">data =</span> workers)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(hbw_model_1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = hbw_trips ~ n_seniors + WRKCOUNT + veh_avail + income, 
+    data = workers)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-1.2711 -1.0885 -0.1044  0.8366 10.8366 
+
+Coefficients:
+                Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)     0.990440   0.016018  61.833  &lt; 2e-16 ***
+n_seniors      -0.059009   0.005896 -10.009  &lt; 2e-16 ***
+WRKCOUNT        0.026915   0.004465   6.027 1.67e-09 ***
+veh_availSuff.  0.064237   0.012049   5.331 9.77e-08 ***
+veh_availZero  -0.020960   0.027267  -0.769    0.442    
+incomemiddle    0.081824   0.009175   8.918  &lt; 2e-16 ***
+incomehigh     -0.014867   0.010428  -1.426    0.154    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.9909 on 93934 degrees of freedom
+Multiple R-squared:  0.00402,   Adjusted R-squared:  0.003956 
+F-statistic: 63.19 on 6 and 93934 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p>Let’s compare this result to the model parameters in TDM23.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(<span class="at">Variable =</span> <span class="fu">c</span>(<span class="st">"Constant"</span>,</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Number of household seniors"</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Number of household workers"</span>,</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Sufficient vehicle household"</span>,</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Zero vehicle household"</span>,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Middle income"</span>,</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"High income"</span>),</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">Linear model</span><span class="st">`</span> <span class="ot">=</span> hbw_model_1<span class="sc">$</span>coefficients,</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">p-value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">summary</span>(hbw_model_1)<span class="sc">$</span>coefficients[,<span class="dv">4</span>],</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">TDM23 rate</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="fl">1.414</span>,</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>                        <span class="sc">-</span><span class="fl">0.149</span>,</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>                        <span class="sc">-</span><span class="fl">0.025</span>,</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>                        <span class="dv">0</span>,</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>                        <span class="sc">-</span><span class="fl">0.093</span>,</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>                        <span class="fl">0.062</span>,</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>                        <span class="fl">0.062</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Variable</th>
+<th style="text-align: right;">Linear model</th>
+<th style="text-align: right;">p-value</th>
+<th style="text-align: right;">TDM23 rate</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Constant</td>
+<td style="text-align: right;">0.990</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">1.414</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Number of household seniors</td>
+<td style="text-align: right;">-0.059</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">-0.149</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Number of household workers</td>
+<td style="text-align: right;">0.027</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">-0.025</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Sufficient vehicle household</td>
+<td style="text-align: right;">0.064</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Zero vehicle household</td>
+<td style="text-align: right;">-0.021</td>
+<td style="text-align: right;">0.442</td>
+<td style="text-align: right;">-0.093</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Middle income</td>
+<td style="text-align: right;">0.082</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.062</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">High income</td>
+<td style="text-align: right;">-0.015</td>
+<td style="text-align: right;">0.154</td>
+<td style="text-align: right;">0.062</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The two models have a few things in common:</p>
+<ul>
+<li><p>Both the NHTS model and the TDM23 model would predict that a worker in a low-income household with zero seniors, zero workers, and fewer cars than drivers would make one HBW trip on a typical day.</p></li>
+<li><p>Both models predict that a worker in a household with more seniors would make fewer work trips (about a tenth of a trip fewer for each senior).</p></li>
+<li><p>Both models predict about a tenth of a trip more for middle-income households than for low-income households.</p></li>
+</ul>
+<p>There are also some noteworthy differences:</p>
+<ul>
+<li><p>The NHTS model predicts that workers in households with more workers will make more HBW trips. The TDM23 model predicts that opposite: that workers in households with more workers will make fewer HBW trips.</p></li>
+<li><p>The NHTS model predicts that workers in households with sufficient vehicles will make more HBW trips than those in households with insufficient vehicles. The TDM23 model predicts that there will be no difference in the number of HBW trips by workers from these two household types.</p></li>
+<li><p>The NHTS model finds no significant difference in the number of HBW trips based on whether a household has insufficient vehicles or zero vehicles. The TDM23 model predicts that zero-vehicle households will make fewer HBW trips than insufficient vehicle households.</p></li>
+<li><p>The NHTS model predicts that high-income households will make about the same number of HBW trips as low-income households, but that middle-income households will make more HBW trips than either high- or low-income households. The TDM23 model predicts that both middle-income and high-income households will make more HBW trips than low-income households.</p></li>
+</ul>
+<p>It’s worth noting that both the linear NHTS model and the TDM model will generate less variation in their predictions for the NHTS data than we see in our observed values for the NHTS data.</p>
+<p>Let’s take a look at the range of values in each of our predictors.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>workers <span class="sc">|&gt;</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="st">`</span><span class="at">Minimum seniors</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">min</span>(n_seniors),</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>            <span class="st">`</span><span class="at">Maximum seniors</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">max</span>(n_seniors),</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>            <span class="st">`</span><span class="at">Minimum workers</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">min</span>(WRKCOUNT),</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>            <span class="st">`</span><span class="at">Maximum workers</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">max</span>(WRKCOUNT)) <span class="sc">|&gt;</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">t</span>() <span class="sc">|&gt;</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Minimum seniors</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Maximum seniors</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Minimum workers</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Maximum workers</td>
+<td style="text-align: right;">7</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The lowest number of home-based work trips that the NHTS model could theoretically predict with these ranges of variables would be about 0.8 trips (which we could round to one) for a worker in a zero-vehicle (or insufficient vehicle), high-income (or low-income) household with four seniors and one worker. The highest number of home-based work trips it could predict would be 1.32 trips (which we could also round to one) for a middle-income, sufficient-vehicle household with no seniors and seven workers.</p>
+<p>The lowest number of home-based work trips that the TDM23 model could theoretically predict with these ranges of variables would be about 0.55 trips (which we could round to one) for a worker in a zero-vehicle, low-income household with four seniors and seven workers. The highest number of home-based work trips it could predict would be 1.45 trips (which we could also round to one) for a middle-income (or high-income), sufficient-vehicle (or insufficient-vehicle) household with no seniors and one worker.</p>
+<p>Keep in mind that most workers in the NHTS dataset made either zero or two HBW trips on the survey day.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>workers <span class="sc">|&gt;</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(hbw_trips) <span class="sc">|&gt;</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="st">`</span><span class="at">Number of workers</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">n</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">Percent of workers</span><span class="st">`</span> <span class="ot">=</span> </span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>           <span class="dv">100</span><span class="sc">*</span><span class="st">`</span><span class="at">Number of workers</span><span class="st">`</span> <span class="sc">/</span> <span class="fu">sum</span>(<span class="st">`</span><span class="at">Number of workers</span><span class="st">`</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">hbw_trips</th>
+<th style="text-align: right;">Number of workers</th>
+<th style="text-align: right;">Percent of workers</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">32295</td>
+<td style="text-align: right;">34</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">23497</td>
+<td style="text-align: right;">25</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">34573</td>
+<td style="text-align: right;">37</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1469</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">1942</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">68</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">84</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Here is a plot comparing the predicted values from the NHTS model to the observed values.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>hbw_check_1 <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">observed =</span> hbw_model_1<span class="sc">$</span>model<span class="sc">$</span>hbw_trips,</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>                    <span class="at">predicted =</span> hbw_model_1<span class="sc">$</span>fitted.values)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(hbw_check_1) <span class="sc">+</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_jitter</span>(<span class="fu">aes</span>(<span class="at">x =</span> observed,</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">y =</span> predicted),</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>              <span class="at">color =</span> <span class="st">"lightgreen"</span>,</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>              <span class="at">alpha =</span> <span class="fl">0.1</span>) <span class="sc">+</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">name =</span> <span class="st">"Number of observed trips per worker"</span>,</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>                     <span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>, <span class="fl">12.5</span>),</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>                     <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">12</span>, <span class="at">by =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">name =</span> <span class="st">"Number of predicted trips per worker"</span>,</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>                     <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">2</span>),</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>                     <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">2</span>, <span class="at">by =</span> <span class="fl">0.25</span>)) <span class="sc">+</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="P3_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>We can also round the predicted values to a whole number of trips and generate a confusion matrix.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>hbw_check_1 <span class="ot">&lt;-</span> hbw_check_1 <span class="sc">|&gt;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">observed_cat =</span> <span class="fu">case_when</span>(observed <span class="sc">==</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">"Zero"</span>,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>                                  observed <span class="sc">==</span> <span class="dv">1</span> <span class="sc">~</span> <span class="st">"One"</span>, </span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>                                  observed <span class="sc">==</span> <span class="dv">2</span> <span class="sc">~</span> <span class="st">"Two"</span>,</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>                                  <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Three_plus"</span>),</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">predicted_cat =</span> <span class="fu">case_when</span>(<span class="fu">round</span>(predicted) <span class="sc">==</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">"Zero"</span>,</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>                                   <span class="fu">round</span>(predicted) <span class="sc">==</span> <span class="dv">1</span> <span class="sc">~</span> <span class="st">"One"</span>, </span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>                                   <span class="fu">round</span>(predicted) <span class="sc">==</span> <span class="dv">2</span> <span class="sc">~</span> <span class="st">"Two"</span>,</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>                                   <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Three_plus"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">observed_cat =</span> <span class="fu">factor</span>(observed_cat,</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>                               <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Zero"</span>,</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"One"</span>,</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Two"</span>,</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Three_plus"</span>)),</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>         <span class="at">predicted_cat =</span> <span class="fu">factor</span>(predicted_cat,</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>                                <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Zero"</span>,</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"One"</span>,</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Two"</span>,</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Three_plus"</span>)))</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a><span class="fu">confusionMatrix</span>(hbw_check_1<span class="sc">$</span>predicted_cat, hbw_check_1<span class="sc">$</span>observed_cat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Confusion Matrix and Statistics
+
+            Reference
+Prediction    Zero   One   Two Three_plus
+  Zero           0     0     0          0
+  One        32295 23497 34573       3576
+  Two            0     0     0          0
+  Three_plus     0     0     0          0
+
+Overall Statistics
+                                          
+               Accuracy : 0.2501          
+                 95% CI : (0.2474, 0.2529)
+    No Information Rate : 0.368           
+    P-Value [Acc &gt; NIR] : 1               
+                                          
+                  Kappa : 0               
+                                          
+ Mcnemar's Test P-Value : NA              
+
+Statistics by Class:
+
+                     Class: Zero Class: One Class: Two Class: Three_plus
+Sensitivity               0.0000     1.0000      0.000           0.00000
+Specificity               1.0000     0.0000      1.000           1.00000
+Pos Pred Value               NaN     0.2501        NaN               NaN
+Neg Pred Value            0.6562        NaN      0.632           0.96193
+Prevalence                0.3438     0.2501      0.368           0.03807
+Detection Rate            0.0000     0.2501      0.000           0.00000
+Detection Prevalence      0.0000     1.0000      0.000           0.00000
+Balanced Accuracy         0.5000     0.5000      0.500           0.50000</code></pre>
+</div>
+</div>
+<p>The model never predicts anything other than a value that is rounded to one, so the model accuracy is 25 percent (since 25 percent of our sample really did make one HBW trip).</p>
+</section>
+<section id="poisson-regression" class="level3">
+<h3 class="anchored" data-anchor-id="poisson-regression">Poisson regression</h3>
+<p>Poisson regression is useful for predicting count data (trip counts, in this case). Sometimes count data is “over-dispersed,” meaning the standard deviation is a lot greater than the mean. In those cases, it’s better to use a negative binomial regression. Let’s check the mean and standard deviation of workers’ home-based-work trip counts.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>workers <span class="sc">|&gt;</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mean_hbw_trips =</span> <span class="fu">mean</span>(hbw_trips),</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">st_dev_hbw_trips =</span> <span class="fu">sd</span>(hbw_trips)) <span class="sc">|&gt;</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">mean_hbw_trips</th>
+<th style="text-align: right;">st_dev_hbw_trips</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1.126</td>
+<td style="text-align: right;">0.993</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The standard deviation is less than the mean, so a Poisson model would be fine. Let’s try a Poisson model, and let’s also try adding variables indicating for gender and for whether the worker works full- or part-time.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>hbw_model_2 <span class="ot">&lt;-</span> <span class="fu">glm</span>(hbw_trips <span class="sc">~</span> </span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>                     n_seniors <span class="sc">+</span> </span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                     WRKCOUNT <span class="sc">+</span> </span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>                     veh_avail <span class="sc">+</span> </span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>                     income <span class="sc">+</span> </span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>                     female <span class="sc">+</span> </span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>                     part_time, </span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>   <span class="at">data =</span> workers,</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>   <span class="at">family =</span> <span class="st">"poisson"</span>)</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(hbw_model_2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = hbw_trips ~ n_seniors + WRKCOUNT + veh_avail + 
+    income + female + part_time, family = "poisson", data = workers)
+
+Coefficients:
+                Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)     0.116286   0.015826   7.348 2.02e-13 ***
+n_seniors       0.003855   0.005940   0.649   0.5164    
+WRKCOUNT        0.041945   0.004220   9.939  &lt; 2e-16 ***
+veh_availSuff.  0.056928   0.011729   4.854 1.21e-06 ***
+veh_availZero   0.015820   0.027044   0.585   0.5586    
+incomemiddle    0.017863   0.008933   2.000   0.0455 *  
+incomehigh     -0.089294   0.010241  -8.719  &lt; 2e-16 ***
+femaleTRUE     -0.100738   0.006228 -16.175  &lt; 2e-16 ***
+part_timeTRUE  -0.355233   0.008764 -40.535  &lt; 2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 105341  on 93940  degrees of freedom
+Residual deviance: 102775  on 93932  degrees of freedom
+AIC: 251483
+
+Number of Fisher Scoring iterations: 5</code></pre>
+</div>
+</div>
+<p>You’ll notice that this model doesn’t report an R-square value, but it does report an Akaike Information Criterion value (AIC), which is an alternative measure of model fit. We can compare this to the linear model (lower values are better).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">AIC</span>(hbw_model_1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 264884</code></pre>
+</div>
+</div>
+<p>So the revised model with an AIC score of 251483 offers a better fit.</p>
+<p>We can also plot a comparison of observed values to predicted values.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>hbw_check_2 <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">observed =</span> hbw_model_2<span class="sc">$</span>model<span class="sc">$</span>hbw_trips,</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>                    <span class="at">predicted =</span> hbw_model_2<span class="sc">$</span>fitted.values)</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(hbw_check_2) <span class="sc">+</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_jitter</span>(<span class="fu">aes</span>(<span class="at">x =</span> observed,</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">y =</span> predicted),</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>              <span class="at">color =</span> <span class="st">"lightgreen"</span>,</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>              <span class="at">alpha =</span> <span class="fl">0.2</span>,</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>              <span class="at">size =</span> <span class="fl">0.1</span>) <span class="sc">+</span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">name =</span> <span class="st">"Number of observed trips per worker"</span>,</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>                     <span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>, <span class="fl">12.5</span>),</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>                     <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">12</span>, <span class="at">by =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">name =</span> <span class="st">"Number of predicted trips per worker"</span>,</span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>                     <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">2</span>),</span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>                     <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">2</span>, <span class="at">by =</span> <span class="fl">0.25</span>)) <span class="sc">+</span></span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="P3_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>It does predict more variation, but the plot doesn’t show a clear pattern of predicting higher values for cases with higher observed values.</p>
+<p>Does it do better at identifying cases that make more or fewer than one trip?</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>hbw_check_2 <span class="ot">&lt;-</span> hbw_check_2 <span class="sc">|&gt;</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">observed_cat =</span> <span class="fu">case_when</span>(observed <span class="sc">==</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">"Zero"</span>,</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>                                  observed <span class="sc">==</span> <span class="dv">1</span> <span class="sc">~</span> <span class="st">"One"</span>, </span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>                                  observed <span class="sc">==</span> <span class="dv">2</span> <span class="sc">~</span> <span class="st">"Two"</span>,</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>                                  <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Three_plus"</span>),</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">predicted_cat =</span> <span class="fu">case_when</span>(<span class="fu">round</span>(predicted) <span class="sc">==</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">"Zero"</span>,</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>                                   <span class="fu">round</span>(predicted) <span class="sc">==</span> <span class="dv">1</span> <span class="sc">~</span> <span class="st">"One"</span>, </span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>                                   <span class="fu">round</span>(predicted) <span class="sc">==</span> <span class="dv">2</span> <span class="sc">~</span> <span class="st">"Two"</span>,</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>                                   <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Three_plus"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">observed_cat =</span> <span class="fu">factor</span>(observed_cat,</span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>                               <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Zero"</span>,</span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"One"</span>,</span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Two"</span>,</span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Three_plus"</span>)),</span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>         <span class="at">predicted_cat =</span> <span class="fu">factor</span>(predicted_cat,</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>                                <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Zero"</span>,</span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"One"</span>,</span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Two"</span>,</span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Three_plus"</span>)))</span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a><span class="fu">confusionMatrix</span>(hbw_check_2<span class="sc">$</span>predicted_cat, hbw_check_1<span class="sc">$</span>observed_cat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Confusion Matrix and Statistics
+
+            Reference
+Prediction    Zero   One   Two Three_plus
+  Zero           0     0     0          0
+  One        32291 23496 34568       3576
+  Two            4     1     5          0
+  Three_plus     0     0     0          0
+
+Overall Statistics
+                                         
+               Accuracy : 0.2502         
+                 95% CI : (0.2474, 0.253)
+    No Information Rate : 0.368          
+    P-Value [Acc &gt; NIR] : 1              
+                                         
+                  Kappa : 0              
+                                         
+ Mcnemar's Test P-Value : NA             
+
+Statistics by Class:
+
+                     Class: Zero Class: One Class: Two Class: Three_plus
+Sensitivity               0.0000  0.9999574  1.446e-04           0.00000
+Specificity               1.0000  0.0001278  9.999e-01           1.00000
+Pos Pred Value               NaN  0.2501411  5.000e-01               NaN
+Neg Pred Value            0.6562  0.9000000  6.320e-01           0.96193
+Prevalence                0.3438  0.2501251  3.680e-01           0.03807
+Detection Rate            0.0000  0.2501144  5.322e-05           0.00000
+Detection Prevalence      0.0000  0.9998936  1.064e-04           0.00000
+Balanced Accuracy         0.5000  0.5000426  5.000e-01           0.50000</code></pre>
+</div>
+</div>
+<p>There are five cases with an observed value of two trips where the model predicts two trips, so the accuracy increases from 25.01 percent to 25.02 percent. Which is something, I guess.Let’s also see how the modeled relationship compare to our linear model and to the TDM23 model.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(<span class="at">Variable =</span> <span class="fu">c</span>(<span class="st">"Constant"</span>,</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Number of household seniors"</span>,</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Number of household workers"</span>,</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Sufficient vehicle household"</span>,</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Zero vehicle household"</span>,</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Middle income"</span>,</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"High income"</span>,</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Female"</span>,</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Part-time"</span>),</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">Poisson model</span><span class="st">`</span> <span class="ot">=</span> hbw_model_2<span class="sc">$</span>coefficients,</span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">Poisson p-value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">summary</span>(hbw_model_2)<span class="sc">$</span>coefficients[,<span class="dv">4</span>],</span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">Linear model</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">c</span>(hbw_model_1<span class="sc">$</span>coefficients, </span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>                               <span class="cn">NA</span>, <span class="cn">NA</span>),</span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">Linear p-value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="fu">summary</span>(hbw_model_1)<span class="sc">$</span>coefficients[,<span class="dv">4</span>],</span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a>                                       <span class="cn">NA</span>, <span class="cn">NA</span>),</span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">TDM23 model</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">c</span>(<span class="fl">1.414</span>,</span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>                        <span class="sc">-</span><span class="fl">0.149</span>,</span>
+<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a>                        <span class="sc">-</span><span class="fl">0.025</span>,</span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a>                        <span class="dv">0</span>,</span>
+<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a>                        <span class="sc">-</span><span class="fl">0.093</span>,</span>
+<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a>                        <span class="fl">0.062</span>,</span>
+<span id="cb30-22"><a href="#cb30-22" aria-hidden="true" tabindex="-1"></a>                        <span class="fl">0.062</span>,</span>
+<span id="cb30-23"><a href="#cb30-23" aria-hidden="true" tabindex="-1"></a>                        <span class="cn">NA</span>,</span>
+<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a>                        <span class="cn">NA</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 29%">
+<col style="width: 14%">
+<col style="width: 16%">
+<col style="width: 13%">
+<col style="width: 15%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Variable</th>
+<th style="text-align: right;">Poisson model</th>
+<th style="text-align: right;">Poisson p-value</th>
+<th style="text-align: right;">Linear model</th>
+<th style="text-align: right;">Linear p-value</th>
+<th style="text-align: right;">TDM23 model</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Constant</td>
+<td style="text-align: right;">0.116</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.990</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">1.414</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Number of household seniors</td>
+<td style="text-align: right;">0.004</td>
+<td style="text-align: right;">0.516</td>
+<td style="text-align: right;">-0.059</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">-0.149</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Number of household workers</td>
+<td style="text-align: right;">0.042</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.027</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">-0.025</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Sufficient vehicle household</td>
+<td style="text-align: right;">0.057</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.064</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Zero vehicle household</td>
+<td style="text-align: right;">0.016</td>
+<td style="text-align: right;">0.559</td>
+<td style="text-align: right;">-0.021</td>
+<td style="text-align: right;">0.442</td>
+<td style="text-align: right;">-0.093</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Middle income</td>
+<td style="text-align: right;">0.018</td>
+<td style="text-align: right;">0.046</td>
+<td style="text-align: right;">0.082</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.062</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">High income</td>
+<td style="text-align: right;">-0.089</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">-0.015</td>
+<td style="text-align: right;">0.154</td>
+<td style="text-align: right;">0.062</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Female</td>
+<td style="text-align: right;">-0.101</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Part-time</td>
+<td style="text-align: right;">-0.355</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>In comparing the model coefficients, it doesn’t make sense to compare the magnitudes, since the Poisson regression transforms the outcome, but you can still compare the direction and significance of the coefficients. In general, the results of the Poisson regression are consistent with the results of the linear regression, including in cases where the linear regression suggests a different relationship than is used in the TDM model.</p>
+<ul>
+<li><p>Both the Poisson model and our linear model suggest a positive relationship between the number of household workers and the number of home-based work trip by each worker. In contrast, the TDM23 model uses a negative relationship.</p></li>
+<li><p>Both the Poisson model and our linear model suggest that sufficient-vehicle households make more home-based work trips than insufficient vehicle households. The TDM23 model does not include any difference between sufficient and insufficient vehicle households.</p></li>
+<li><p>Neither the Poisson model nor or linear model shows a significant difference in the number of home-based work trips by workers in zero-vehicle-households and those in vehicle-insufficient households. The TDM23 model indicates that workers in zero-vehicle households make fewer home-based work trips than those in vehicle-insufficient households.</p></li>
+<li><p>All three models show that workers in middle-income households make more home-based work trips than workers in low-income households. In the Poisson model, this effect is significant at a 95-percent confidence level, but not at a 99-percent confidence level (or even at a 96-percent confidence level).</p></li>
+</ul>
+<p>One relationship in the Poisson model is different than what is suggested by both our linear model and the TDM23 model: While both the TDM23 model and our linear model show a negative relationship between the number of seniors in a household and the number of home-based work trips a worker in that household would make, the Poisson model does not find any significant relationship between the number of household seniors and the number of home-based work trips.</p>
+<p>Finally, there are two relationships that were included in the Poisson model that were not included in the other two models:</p>
+<ul>
+<li><p>The Poisson model finds that female workers are make fewer home-based work trips. This may be because female workers are more likely to “chain” their commute trips, for example, by running households errands on the way to or from work.</p></li>
+<li><p>The Poisson model finds that part-time workers make fewer home-based work trips than full-time workers. This could also be an effect of part-time workers being more likely to chain their trips.</p></li>
+</ul>
+<p>Note that the Structures and Performance Report indicates that differences in the number of home-based work trips per worker “is assumed to vary based on whether the worker is part or full time.” I’m not sure I understand this assumption, and I don’t think I agree with it, particularly since we still see differences when we control for full- and part-time work. My own thought is that variation is better explained by trip chaining and (perhaps) working from home.</p>
+</section>
+<section id="zero-inflated-poisson-regression" class="level3">
+<h3 class="anchored" data-anchor-id="zero-inflated-poisson-regression">Zero-inflated Poisson regression</h3>
+<p>Both models we’ve tried under-estimate the number of workers who made zero home-based work trips. We could try a zero-inflated model. A zero-inflated model estimates two models simultaneously: one for the likelihood that the outcome will be zero, and another for the value of the outcome, conditional on it not being zero. Here is how you would estimate a zero-inflated Poisson model with same set of predictors for the binomal part of the model (whether the worker made zero home-based work trips) and the Poisson part of the model (how many trips they made, if they made any).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>hbw_model_3 <span class="ot">&lt;-</span> <span class="fu">zeroinfl</span>(hbw_trips <span class="sc">~</span> </span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>                          n_seniors <span class="sc">+</span> </span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>                          WRKCOUNT <span class="sc">+</span>                          </span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>                          veh_avail <span class="sc">+</span>                          </span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>                          income <span class="sc">+</span>                          </span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>                          female <span class="sc">+</span>                          </span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>                          part_time <span class="sc">|</span>                         </span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>                          n_seniors <span class="sc">+</span>                          </span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>                          WRKCOUNT <span class="sc">+</span>                          </span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>                          veh_avail <span class="sc">+</span>                          </span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>                          income <span class="sc">+</span>                          </span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>                          female <span class="sc">+</span>                          </span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>                          part_time,     </span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>                        <span class="at">data =</span> workers,    </span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>                        <span class="at">dist =</span> <span class="st">"poisson"</span>)  </span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(hbw_model_3)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+zeroinfl(formula = hbw_trips ~ n_seniors + WRKCOUNT + veh_avail + income + 
+    female + part_time | n_seniors + WRKCOUNT + veh_avail + income + 
+    female + part_time, data = workers, dist = "poisson")
+
+Pearson residuals:
+    Min      1Q  Median      3Q     Max 
+-1.2571 -0.8143 -0.1303  0.7485  9.5630 
+
+Count model coefficients (poisson with log link):
+                Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)     0.116607   0.016653   7.002 2.52e-12 ***
+n_seniors       0.019575   0.006416   3.051 0.002281 ** 
+WRKCOUNT        0.039659   0.004428   8.956  &lt; 2e-16 ***
+veh_availSuff.  0.043786   0.012364   3.541 0.000398 ***
+veh_availZero   0.009428   0.029156   0.323 0.746431    
+incomemiddle    0.031895   0.009579   3.330 0.000870 ***
+incomehigh     -0.069824   0.010851  -6.435 1.24e-10 ***
+femaleTRUE     -0.101727   0.006492 -15.669  &lt; 2e-16 ***
+part_timeTRUE   0.013052   0.011781   1.108 0.267923    
+
+Zero-inflation model coefficients (binomial with logit link):
+                 Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)    -17.770981 242.876354  -0.073  0.94167    
+n_seniors        0.148187   0.033731   4.393 1.12e-05 ***
+WRKCOUNT        -0.037052   0.031357  -1.182  0.23736    
+veh_availSuff.  -0.222893   0.078629  -2.835  0.00459 ** 
+veh_availZero   -0.071362   0.168175  -0.424  0.67132    
+incomemiddle     0.160222   0.061033   2.625  0.00866 ** 
+incomehigh       0.329181   0.077145   4.267 1.98e-05 ***
+femaleTRUE       0.001115   0.049427   0.023  0.98200    
+part_timeTRUE   17.012866 242.876320   0.070  0.94416    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+
+Number of iterations in BFGS optimization: 70 
+Log-likelihood: -1.249e+05 on 18 Df</code></pre>
+</div>
+</div>
+</section>
+<section id="section" class="level3">
+<h3 class="anchored" data-anchor-id="section"></h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">AIC</span>(hbw_model_3)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 249915</code></pre>
+</div>
+</div>
+<p>The AIC score is a little bit better than the Poisson model or the linear model.</p>
+<p>Let’s compare the variable coefficients to those from the first Poisson regression.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(<span class="at">Variable =</span> <span class="fu">c</span>(<span class="st">"Constant"</span>,</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Number of household seniors"</span>,</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Number of household workers"</span>,</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Sufficient vehicle household"</span>,</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Zero vehicle household"</span>,</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Middle income"</span>,</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"High income"</span>,</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Female"</span>,</span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"Part-time"</span>),</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">Poisson model</span><span class="st">`</span> <span class="ot">=</span> hbw_model_2<span class="sc">$</span>coefficients,</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">Poisson p-value</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">summary</span>(hbw_model_2)<span class="sc">$</span>coefficients[,<span class="dv">4</span>],</span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">Zero-inf count</span><span class="st">`</span> <span class="ot">=</span> hbw_model_3<span class="sc">$</span>coefficients<span class="sc">$</span>count,</span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">Zero-inf count p</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">summary</span>(hbw_model_3)<span class="sc">$</span>coefficients<span class="sc">$</span>count[,<span class="dv">4</span>],</span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">Zero-inf zero</span><span class="st">`</span> <span class="ot">=</span> hbw_model_3<span class="sc">$</span>coefficients<span class="sc">$</span>zero,</span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>       <span class="st">`</span><span class="at">Zero-inf zero p</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">summary</span>(hbw_model_3)<span class="sc">$</span>coefficients<span class="sc">$</span>zero[,<span class="dv">4</span>]) <span class="sc">|&gt;</span></span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 23%">
+<col style="width: 11%">
+<col style="width: 13%">
+<col style="width: 12%">
+<col style="width: 14%">
+<col style="width: 11%">
+<col style="width: 13%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Variable</th>
+<th style="text-align: right;">Poisson model</th>
+<th style="text-align: right;">Poisson p-value</th>
+<th style="text-align: right;">Zero-inf count</th>
+<th style="text-align: right;">Zero-inf count p</th>
+<th style="text-align: right;">Zero-inf zero</th>
+<th style="text-align: right;">Zero-inf zero p</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Constant</td>
+<td style="text-align: right;">0.116</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.117</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">-17.771</td>
+<td style="text-align: right;">0.942</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Number of household seniors</td>
+<td style="text-align: right;">0.004</td>
+<td style="text-align: right;">0.516</td>
+<td style="text-align: right;">0.020</td>
+<td style="text-align: right;">0.002</td>
+<td style="text-align: right;">0.148</td>
+<td style="text-align: right;">0.000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Number of household workers</td>
+<td style="text-align: right;">0.042</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.040</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">-0.037</td>
+<td style="text-align: right;">0.237</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Sufficient vehicle household</td>
+<td style="text-align: right;">0.057</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.044</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">-0.223</td>
+<td style="text-align: right;">0.005</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Zero vehicle household</td>
+<td style="text-align: right;">0.016</td>
+<td style="text-align: right;">0.559</td>
+<td style="text-align: right;">0.009</td>
+<td style="text-align: right;">0.746</td>
+<td style="text-align: right;">-0.071</td>
+<td style="text-align: right;">0.671</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Middle income</td>
+<td style="text-align: right;">0.018</td>
+<td style="text-align: right;">0.046</td>
+<td style="text-align: right;">0.032</td>
+<td style="text-align: right;">0.001</td>
+<td style="text-align: right;">0.160</td>
+<td style="text-align: right;">0.009</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">High income</td>
+<td style="text-align: right;">-0.089</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">-0.070</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.329</td>
+<td style="text-align: right;">0.000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Female</td>
+<td style="text-align: right;">-0.101</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">-0.102</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.001</td>
+<td style="text-align: right;">0.982</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Part-time</td>
+<td style="text-align: right;">-0.355</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">0.013</td>
+<td style="text-align: right;">0.268</td>
+<td style="text-align: right;">17.013</td>
+<td style="text-align: right;">0.944</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The zero-inflated model is mostly pretty consistent with the Poisson model.</p>
+<ul>
+<li><p>The Poisson model shows that more household workers is associated with more HBW trips per worker. This is consistent with the zero-inflated Poisson model, which suggests that more household workers is also associated with a both a lower likelihood of making zero HBW trips, and a greater number of HBW trips among those who do make HBW trip.</p></li>
+<li><p>Likewise, being in a vehicle-sufficient household is associates with a lower likelihood of making zero HBW trips and a greater number of HBW trips among those who make at least one. This is consistent with the result from the Poisson model which shows a positive relationship between vehicle sufficiency and the number of trips per worker.</p></li>
+<li><p>Consistent with the results from the Poisson model, the zero-inflated model shows that, relative to being in a vehicle-insufficient household, being in a zero-vehicle household has no significant effect on either a worker’s likelihood of making no HBW trips or on the number of trips they make.</p></li>
+<li><p>Consistent with the results from the Poisson model, the zero-inflated model shows that, relative to being in a low-income household, being in a high-income household is associate with a higher likelihood of making zero HBW trips and a lower number of HBW trips.</p></li>
+</ul>
+<p>The differences between the Poisson model and the zero-inflated Poisson model also yield some interesting insights.</p>
+<ul>
+<li><p>While the Poisson model shows not significant relationship between the number of household seniors and the number of HBW trips a worker will make, the zero-inflated Poisson model suggests that this may be because of two effects working in opposite directions: a higher number of household seniors is associated with both a greater likelihood of making zero HBW trips <em>and</em> more HBW trips among those workers who make any HBW trips.</p></li>
+<li><p>Both the Poisson model and the zero-inflated Poisson model show that workers in middle-income households make more HBW trips than those in low-income households, but the zero-inflated Poisson model also shows that workers in middle-income households are more likely to make zero HBW trips.</p></li>
+<li><p>Both the Poisson model and the zero-inflated Poisson model show that female workers make fewer home-based work trips than their male peers. However, the zero-inflated Poisson model does not indicate that there is any significant relationship between gender and the likelihood of making zero HBW trips.</p></li>
+<li><p>The Poisson model shows that part-time workers make fewer HBW trips, but the zero-inflated Poisson model shows no significant relationship between full/part time worker status and either the number of HBW trips or the likelihood of making zero HBW trips.</p></li>
+</ul>
+<p>We can also look at a plot of the predicted and observed values.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>hbw_check_3 <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">observed =</span> hbw_model_3<span class="sc">$</span>model<span class="sc">$</span>hbw_trips, </span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">predicted =</span> hbw_model_3<span class="sc">$</span>fitted.values)</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(hbw_check_3) <span class="sc">+</span>   </span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_jitter</span>(<span class="fu">aes</span>(<span class="at">x =</span> observed,                  </span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>                  <span class="at">y =</span> predicted),               </span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>              <span class="at">color =</span> <span class="st">"lightgreen"</span>,               </span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>              <span class="at">alpha =</span> <span class="fl">0.1</span>,               </span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>              <span class="at">size =</span> <span class="fl">0.1</span>) <span class="sc">+</span>   </span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">name =</span> <span class="st">"Number of observed trips per worker"</span>,</span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>                     <span class="at">limits =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>, <span class="fl">12.5</span>),</span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>                     <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">12</span>, <span class="at">by =</span> <span class="dv">1</span>)) <span class="sc">+</span>   </span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">name =</span> <span class="st">"Number of predicted trips per worker"</span>,</span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a>                     <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">2</span>),</span>
+<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a>                     <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">2</span>, <span class="at">by =</span> <span class="fl">0.25</span>)) <span class="sc">+</span></span>
+<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="P3_files/figure-html/unnamed-chunk-29-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>And we can generate a confusion matrix. How do our rounded predictions compare to our observed model?</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>hbw_check_3 <span class="ot">&lt;-</span> hbw_check_3 <span class="sc">|&gt;</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">observed_cat =</span> <span class="fu">case_when</span>(observed <span class="sc">==</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">"Zero"</span>,</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>                                  observed <span class="sc">==</span> <span class="dv">1</span> <span class="sc">~</span> <span class="st">"One"</span>,</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>                                  observed <span class="sc">==</span> <span class="dv">2</span> <span class="sc">~</span> <span class="st">"Two"</span>,</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>                                  <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Three_plus"</span>),</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">predicted_cat =</span> <span class="fu">case_when</span>(<span class="fu">round</span>(predicted) <span class="sc">==</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">"Zero"</span>,</span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>                                   <span class="fu">round</span>(predicted) <span class="sc">==</span> <span class="dv">1</span> <span class="sc">~</span> <span class="st">"One"</span>,</span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>                                   <span class="fu">round</span>(predicted) <span class="sc">==</span> <span class="dv">2</span> <span class="sc">~</span> <span class="st">"Two"</span>,</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>                                   <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Three_plus"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">observed_cat =</span> <span class="fu">factor</span>(observed_cat,</span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>                               <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Zero"</span>,</span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"One"</span>,</span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Two"</span>,</span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Three_plus"</span>)),</span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>         <span class="at">predicted_cat =</span> <span class="fu">factor</span>(predicted_cat,</span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a>                                <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Zero"</span>,</span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a>                                           <span class="st">"One"</span>,</span>
+<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a>                                           <span class="st">"Two"</span>,</span>
+<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a>                                           <span class="st">"Three_plus"</span>)))</span>
+<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a><span class="fu">confusionMatrix</span>(hbw_check_3<span class="sc">$</span>predicted_cat, hbw_check_3<span class="sc">$</span>observed_cat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Confusion Matrix and Statistics
+
+            Reference
+Prediction    Zero   One   Two Three_plus
+  Zero           0     0     0          0
+  One        32291 23496 34571       3576
+  Two            4     1     2          0
+  Three_plus     0     0     0          0
+
+Overall Statistics
+                                          
+               Accuracy : 0.2501          
+                 95% CI : (0.2474, 0.2529)
+    No Information Rate : 0.368           
+    P-Value [Acc &gt; NIR] : 1               
+                                          
+                  Kappa : 0               
+                                          
+ Mcnemar's Test P-Value : NA              
+
+Statistics by Class:
+
+                     Class: Zero Class: One Class: Two Class: Three_plus
+Sensitivity               0.0000  1.000e+00  5.785e-05           0.00000
+Specificity               1.0000  8.517e-05  9.999e-01           1.00000
+Pos Pred Value               NaN  2.501e-01  2.857e-01               NaN
+Neg Pred Value            0.6562  8.571e-01  6.320e-01           0.96193
+Prevalence                0.3438  2.501e-01  3.680e-01           0.03807
+Detection Rate            0.0000  2.501e-01  2.129e-05           0.00000
+Detection Prevalence      0.0000  9.999e-01  7.451e-05           0.00000
+Balanced Accuracy         0.5000  5.000e-01  5.000e-01           0.50000</code></pre>
+</div>
+</div>
+<p>Interestingly, even this zero-inflated model does not predict any cases with zero HBW trips. It correctly identifies two cases with two trips.</p>
+<p>I should note that I’m overstating the problem with all of this focus on rounding. In the TDM23 model, we’re going to add app all the trips from all the households within a zone, and if we don’t round them all to a whole number of trips before aggregating them to the zone level, we’d still capture some of the variation due to income, vehicle availability, and the other factors.</p>
+</section>
+<section id="discrete-choice-regression" class="level3">
+<h3 class="anchored" data-anchor-id="discrete-choice-regression">Discrete-choice regression</h3>
+<p>Or, we could really lean into the rounding. Thinking about home-based work trips, we might divide workers into one of four categories:</p>
+<ul>
+<li><p>Zero home-based work trips: This is either a worker who did not go to work that day, or who made intermediate stops on the way to work <em>and</em> on the way home (for example, to pick up and drop-off a child at school)</p></li>
+<li><p>One home-based work trip: This is a worker who did go to work that day, and made an intermediate stop on the way to <em>or</em> from work (but not both).</p></li>
+<li><p>Two home-based work trips: This is a worker who went directly from home to work, and then returned home directly at the end of the work shift.</p></li>
+<li><p>Three or more home-based work trips: This some one whose time in the workplace(s) is fragmented across multiple shifts, with trips home in between them.</p></li>
+</ul>
+<p>These might be categorically different rather than having a linear relationship with the predictors. We could try modeling this as a discrete-choice model.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>workers <span class="ot">&lt;-</span> workers <span class="sc">|&gt;</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">n_hbw_cat =</span> <span class="fu">case_when</span>(hbw_trips <span class="sc">==</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">"Zero"</span>,</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>                               hbw_trips <span class="sc">==</span> <span class="dv">1</span> <span class="sc">~</span> <span class="st">"One"</span>,</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>                               hbw_trips <span class="sc">==</span> <span class="dv">2</span> <span class="sc">~</span> <span class="st">"Two"</span>,</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>                               <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Three_plus"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">full_id =</span> <span class="fu">paste</span>(HOUSEID, PERSONID, <span class="at">sep =</span> <span class="st">"_"</span>))</span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>workers_dfidx <span class="ot">&lt;-</span> <span class="fu">fn_make_dfidx</span>(<span class="at">my_situation =</span> workers,</span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>                               <span class="at">my_id =</span> <span class="st">"full_id"</span>,</span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>                               <span class="at">my_alts =</span> <span class="st">"n_hbw_cat"</span>)</span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>hbw_model_4 <span class="ot">&lt;-</span> <span class="fu">mlogit</span>(choice <span class="sc">~</span> <span class="dv">0</span> <span class="sc">|</span> </span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>                      n_seniors <span class="sc">+</span></span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>                      WRKCOUNT <span class="sc">+</span></span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>                      veh_avail <span class="sc">+</span></span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>                      income <span class="sc">+</span></span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>                      female <span class="sc">+</span> </span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>                      part_time <span class="sc">|</span> <span class="dv">0</span>,</span>
+<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>                           workers_dfidx,</span>
+<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a>                           <span class="at">reflevel =</span> <span class="st">"Zero"</span>)</span>
+<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(hbw_model_4)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+mlogit(formula = choice ~ 0 | n_seniors + WRKCOUNT + veh_avail + 
+    income + female + part_time | 0, data = workers_dfidx, reflevel = "Zero", 
+    method = "nr")
+
+Frequencies of alternatives:choice
+      Zero        One Three_plus        Two 
+  0.343780   0.250125   0.038066   0.368029 
+
+nr method
+6 iterations, 0h:0m:12s 
+g'(-H)^-1g = 7.02E-08 
+gradient close to zero 
+
+Coefficients :
+                           Estimate Std. Error  z-value  Pr(&gt;|z|)    
+(Intercept):One           -0.293734   0.044472  -6.6049 3.978e-11 ***
+(Intercept):Three_plus    -2.067190   0.090342 -22.8819 &lt; 2.2e-16 ***
+(Intercept):Two            0.032211   0.039425   0.8170 0.4139103    
+n_seniors:One             -0.101499   0.016549  -6.1334 8.602e-10 ***
+n_seniors:Three_plus       0.084264   0.031190   2.7016 0.0069006 ** 
+n_seniors:Two             -0.027119   0.014651  -1.8510 0.0641639 .  
+WRKCOUNT:One              -0.016752   0.012355  -1.3559 0.1751407    
+WRKCOUNT:Three_plus        0.023621   0.024815   0.9519 0.3411616    
+WRKCOUNT:Two               0.140114   0.010879  12.8799 &lt; 2.2e-16 ***
+veh_availSuff.:One         0.216170   0.032889   6.5726 4.943e-11 ***
+veh_availSuff.:Three_plus  0.228342   0.067914   3.3622 0.0007732 ***
+veh_availSuff.:Two         0.161765   0.028828   5.6114 2.006e-08 ***
+veh_availZero:One          0.180971   0.072913   2.4820 0.0130644 *  
+veh_availZero:Three_plus  -0.383654   0.184557  -2.0788 0.0376376 *  
+veh_availZero:Two          0.168719   0.065636   2.5705 0.0101540 *  
+incomemiddle:One           0.123218   0.025095   4.9100 9.107e-07 ***
+incomemiddle:Three_plus    0.074329   0.049458   1.5029 0.1328730    
+incomemiddle:Two           0.058552   0.022487   2.6038 0.0092194 ** 
+incomehigh:One            -0.071954   0.028522  -2.5228 0.0116437 *  
+incomehigh:Three_plus     -0.474151   0.060051  -7.8958 2.887e-15 ***
+incomehigh:Two            -0.190655   0.025578  -7.4538 9.059e-14 ***
+femaleTRUE:One            -0.027626   0.017555  -1.5737 0.1155665    
+femaleTRUE:Three_plus     -0.319642   0.035909  -8.9015 &lt; 2.2e-16 ***
+femaleTRUE:Two            -0.256304   0.015939 -16.0804 &lt; 2.2e-16 ***
+part_timeTRUE:One         -0.866980   0.022516 -38.5055 &lt; 2.2e-16 ***
+part_timeTRUE:Three_plus  -0.700197   0.046522 -15.0509 &lt; 2.2e-16 ***
+part_timeTRUE:Two         -0.941303   0.020179 -46.6469 &lt; 2.2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Log-Likelihood: -111170
+McFadden R^2:  0.018698 
+Likelihood ratio test : chisq = 4236.8 (p.value = &lt; 2.22e-16)</code></pre>
+</div>
+</div>
+<p>Take a look at the above coefficients and think about the degree to which these results are consistent or inconsistent with the coefficients from the models with a continuous outcome.</p>
+<p>Directly comparing the model fit between a discrete choice model and a model with a continuous predictor doesn’t make sense, since we’ve changed the outcome, but we can compare the accuracy based on confusion matrices.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>hbw_result_4 <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">id =</span> hbw_model_4<span class="sc">$</span>model<span class="sc">$</span>idx<span class="sc">$</span>id,</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">alternative =</span> hbw_model_4<span class="sc">$</span>model<span class="sc">$</span>idx<span class="sc">$</span>avail_choice,</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>                      <span class="at">choice =</span> hbw_model_4<span class="sc">$</span>model<span class="sc">$</span>choice,</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">probability =</span> hbw_model_4<span class="sc">$</span>model<span class="sc">$</span>probabilities) </span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>observed_4 <span class="ot">&lt;-</span> hbw_result_4 <span class="sc">|&gt;</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(choice) <span class="sc">|&gt;</span></span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">observed_cat =</span> alternative) <span class="sc">|&gt;</span></span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(id, observed_cat)</span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>predicted_4 <span class="ot">&lt;-</span> hbw_result_4 <span class="sc">|&gt;</span></span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(id) <span class="sc">|&gt;</span></span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">predicted =</span> probability <span class="sc">==</span> <span class="fu">max</span>(probability)) <span class="sc">|&gt;</span></span>
+<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">|&gt;</span></span>
+<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(predicted) <span class="sc">|&gt;</span></span>
+<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">predicted_cat =</span> alternative) <span class="sc">|&gt;</span></span>
+<span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(id, predicted_cat)</span>
+<span id="cb41-18"><a href="#cb41-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-19"><a href="#cb41-19" aria-hidden="true" tabindex="-1"></a>hbw_check_4 <span class="ot">&lt;-</span> <span class="fu">full_join</span>(observed_4, predicted_4) <span class="sc">|&gt;</span></span>
+<span id="cb41-20"><a href="#cb41-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">observed_cat =</span> <span class="fu">factor</span>(observed_cat,</span>
+<span id="cb41-21"><a href="#cb41-21" aria-hidden="true" tabindex="-1"></a>                               <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Zero"</span>,</span>
+<span id="cb41-22"><a href="#cb41-22" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"One"</span>,</span>
+<span id="cb41-23"><a href="#cb41-23" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Two"</span>,</span>
+<span id="cb41-24"><a href="#cb41-24" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Three_plus"</span>)),</span>
+<span id="cb41-25"><a href="#cb41-25" aria-hidden="true" tabindex="-1"></a>         <span class="at">predicted_cat =</span> <span class="fu">factor</span>(predicted_cat,</span>
+<span id="cb41-26"><a href="#cb41-26" aria-hidden="true" tabindex="-1"></a>                                <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Zero"</span>,</span>
+<span id="cb41-27"><a href="#cb41-27" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"One"</span>,</span>
+<span id="cb41-28"><a href="#cb41-28" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Two"</span>,</span>
+<span id="cb41-29"><a href="#cb41-29" aria-hidden="true" tabindex="-1"></a>                                          <span class="st">"Three_plus"</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(id)`</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">confusionMatrix</span>(hbw_check_4<span class="sc">$</span>predicted_cat, hbw_check_4<span class="sc">$</span>observed_cat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Confusion Matrix and Statistics
+
+            Reference
+Prediction    Zero   One   Two Three_plus
+  Zero       21020 19088 28358       2820
+  One        11275  4409  6215        756
+  Two            0     0     0          0
+  Three_plus     0     0     0          0
+
+Overall Statistics
+                                          
+               Accuracy : 0.2707          
+                 95% CI : (0.2679, 0.2735)
+    No Information Rate : 0.368           
+    P-Value [Acc &gt; NIR] : 1               
+                                          
+                  Kappa : -0.0744         
+                                          
+ Mcnemar's Test P-Value : NA              
+
+Statistics by Class:
+
+                     Class: Zero Class: One Class: Two Class: Three_plus
+Sensitivity               0.6509    0.18764      0.000           0.00000
+Specificity               0.1846    0.74099      1.000           1.00000
+Pos Pred Value            0.2949    0.19461        NaN               NaN
+Neg Pred Value            0.5023    0.73223      0.632           0.96193
+Prevalence                0.3438    0.25013      0.368           0.03807
+Detection Rate            0.2238    0.04693      0.000           0.00000
+Detection Prevalence      0.7588    0.24116      0.000           0.00000
+Balanced Accuracy         0.4177    0.46431      0.500           0.50000</code></pre>
+</div>
+</div>
+<p>The accuracy improves from 25 percent to 27 percent. This model is much better at identifying the zero-trip workers, but it also predicts way too many of them.</p>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

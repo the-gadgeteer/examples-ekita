@@ -1,21 +1,5 @@
 
 Class "Visualize.Menu.Items"
-
-    init do 
-        self.runtimeObj = CreateObject("Model.Runtime")
-    enditem 
-    
-    Macro "GetMenus" do
-        Menus = {
-					{ ID: "M1", Title: "Show Selected Param Info" , Macro: "SelectedParamInfo" }
-				}
-        Return(Menus)
-    enditem 
-
-    Macro "SelectedParamInfo" do
-        ShowArray({ SelectedParamInfo: self.runtimeObj.GetSelectedParamInfo() })
-        enditem  
- 
 EndClass
 
 
@@ -117,61 +101,7 @@ menu "CTPS_TDM23 Menu"
         enditem
 
 EndMenu 
-
-DBox "config query" (mr)  , , 77, 12 Title: "Configure Select Query Analysis" 
-    Init do
-        DisableItem("Select file")
-        DisableItem("Select folder")
-        DisableItem("Run")
-
-        {, scen} = mr.GetScenario()
-        Args = mr.GetValues()
-        init_dir = Args.OutputFolder + "\\_assignment\\"
-    EndItem
-
-    Text "Selected scenario: " 1, 1, 20, 1
-    Text "Show scenario" after, same, 54, 1 Framed Align: right variable: scen 
-
-    Radio List 1, 3, 75, 2 Prompt: "Run select query analysis for" Variable: mode 
-        Radio Button 30, 4 Prompt: "Highway" 
-            do EnableItem("Select file") EndItem // mode = 1 
-        Radio Button 55, 4 Prompt: "Transit"
-            do EnableItem("Select file") EndItem // mode = 2 
-    
-    Text "Select query file (*.qry): " 1, 6, 20, 1
-    Text "Show query file" after, same, 50, 1 Framed Align: right variable: qry_file
-    Button "Select file" after, same, 2, 1 Prompt: "..." 
-        Do
-            on escape do
-                goto step1
-                end
-            qry_file = ChooseFile({{"Query file (*.qry)", "*.qry"}}, "Choose a Query File", 
-                        {"Initial Directory": init_dir})
-            EnableItem("Select folder")
-            step1:
-            on escape do end 
-        EndItem 
-
-    Text "Select result folder: " 1, 8, 20, 1
-    Text "Show result folder" after, same, 50, 1 Framed Align: right variable: res_folder
-    Button "Select folder" after, same, 2, 1 Prompt: "..."
-        Do
-            on escape do
-                goto step2
-                end
-            res_folder = ChooseDirectory("Choose a Folder", {"Initial Directory": init_dir} )
-            EnableItem("Run")
-            step2:
-            on escape do end
-        EndItem 
-
-    Button "Run" 53, 10, 10, 1 
-        Do
-            return({1,mode,qry_file,res_folder}) 
-        EndItem 
     // Add a Cancel button. The Cancel keyword allows the user to press Esc.
-    Button "Cancel" 65, same, 10, 1 Cancel
-        Do
-            return({,,,})
-        EndItem 
-EndDBox
+
+
+

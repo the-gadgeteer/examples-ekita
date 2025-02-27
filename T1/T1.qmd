@@ -1,0 +1,688 @@
+---
+title: "T1: Vehicle Availability"
+format: 
+  html:
+    theme: minty
+    toc: true
+    toc-location: left
+editor: visual
+---
+
+The purpose of this assignment is for you to
+
+-   Familiarize your self with the inputs to the Boston Region Metropolitan Planning Organization's regional travel demand model ([TDM23](https://www.ctps.org/travel-demand-model)),
+
+-   Create an alternative to the base scenario by making a simple change to one or more input file to reflect a change in population, employment, or the transportation network,
+
+-   Run the first step of the model (the vehicle availability submodel) for both the existing (2019) condition and the alternative you've developed, and
+
+-   Identify changes in vehicle availability that result from your alternative scenario.
+
+## Set up and install the model
+
+-   Fork the examples repo to your own account and name the forked repository with a unique name. Create an RStudio project from your fork (sorry - you'll need to do this again even if you've done it already, since I've updated some of the model files).
+
+-   Download and extract the inputs file from Canvas, and save that folder to the model directory of your forked repo.
+
+-   Install TransCAD to your computer, using the installation files (you should have received an email with a link) the serial number you can find on Canvas. I have both TransCAD 9 and TransCAD 10 available. For now, use TransCAD 10.
+
+-   Install Python/Anaconda (version 2.3.2 or later). You can use this version: <https://repo.anaconda.com/archive/Anaconda3-2022.10-Windows-x86_64.exe>. You should install it "for all users."
+
+-   Follow these instructions to set up a Python environment: <https://ctpsstaff.github.io/tdm23_users_guide/1.0/pages/setup/install/#python-environment>
+
+-   Follow these instructions to configure TransCAD so it can find your Python environment: <https://ctpsstaff.github.io/tdm23_users_guide/1.0/pages/setup/install/#transcad-configuration>
+
+## Load libraries
+
+This analysis uses the following packages:
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(sf)
+library(DBI)
+library(here)
+library(leaflet)
+library(maptiles)
+library(tidyterra)
+library(knitr)
+library(tigris)
+
+sf::sf_use_s2(FALSE)
+```
+
+## Examine the study area
+
+There is a shapefile defining the traffic analysis zones included in the model in the inputs subfolder of the model directory. You can open this in a GIS software program of your choice to take a look at it.
+
+Here, I'll load it and make a quick static map of the full model area.
+
+```{r}
+TAZs <- here("model",
+             "inputs",
+             "zonal",
+             "shp",
+             "CTPS_TDM23_TAZ_2017g_v202303.shp") |>
+  st_read(quiet = TRUE) |>
+  st_transform("WGS84")
+
+base_map <- get_tiles(TAZs,
+                      provider = "CartoDB.Positron",
+                      zoom = 8,
+                      crop = TRUE)
+
+ggplot(TAZs) +
+  geom_spatraster_rgb(data = base_map) +
+  geom_sf(fill = NA,
+          color = "orange") +
+  theme_void()
+```
+
+And here's an interactive map of just Somerville and Medford.
+
+```{r, message=FALSE}
+somermed_TAZs <- TAZs |>
+  filter(town %in% c("SOMERVILLE", "MEDFORD"))
+
+
+leaflet(somermed_TAZs) |>
+  addProviderTiles(provider = "CartoDB.Positron") |>
+  addPolygons(weight = 2,
+              color = "orange",
+              fillColor = "orange",
+              fillOpacity = 0.1,
+              highlightOptions = highlightOptions(weight = 3,
+                                                  fillOpacity = 0.5),
+              label = somermed_TAZs$taz_id)
+```
+
+The model uses TAZs as the basis for (dis)aggregating the populations in Rhode Island and New Hampshire, but uses census blocks within Massachusetts. Here are the census blocks in Somerville and Medford.
+
+```{r, message=FALSE}
+somermed_blocks <- blocks(state = "MA", 
+                          county = "Middlesex", 
+                          year = 2010,
+                          progress_bar = FALSE) |>
+  st_transform("WGS84") |>
+  st_filter(somermed_TAZs)
+
+leaflet(somermed_blocks) |>
+  addProviderTiles(provider = "CartoDB.Positron") |>
+  addPolygons(weight = 2,
+              color = "forestgreen",
+              fillColor = "forestgreen",
+              fillOpacity = 0.1,
+              highlightOptions = highlightOptions(weight = 3,
+                                                  fillOpacity = 0.5),
+              label = somermed_blocks$GEOID10)
+```
+
+## Examine base scenario inputs
+
+Open the file CTPS_TDM23.scenarios at the top level of the model directory. After the line `Scenario "Base"`, you'll see a list of parameters defined. Most of these are the locations of files containing input data. The vehicle availability model is primarily based on population and employment data, and it also uses the ratio of transit accessibility to car accessibility, which is a function of the transit and highway networks.
+
+### Population files
+
+There is one population file for Massachusetts and another for the parts of Rhode Island and New Hampshire that are included in the model area. Let's take a look at them.
+
+```{r}
+MA_pop <- here("model",
+               "inputs",
+               "zonal",
+               "ma_population_run97-176_2019_v20240109.csv") |>
+  read_csv(show_col_types = FALSE) |>
+  mutate(block_id = as.character(block_id))
+
+head(MA_pop, n = 10) |>
+  kable()
+```
+
+As you can see, this is person-level data. The record for each person indicates what household they are in, what census block they live in, four household-level variables (number of people, number of workers, and number of children), and three person-level variables (age, income, and whether they are a worker).
+
+Here is the dataset for Rhode Island and New Hampshire. It includes the same variables, but note that the block ID refers to a TAZ rather than a census block.
+
+```{r}
+RINH_pop <- here("model",
+               "inputs",
+               "zonal",
+               "nhri_population_2020_v20230518.csv") |>
+  read_csv(show_col_types = FALSE)
+
+head(RINH_pop, n = 10) |>
+  kable()
+```
+
+### Employment files
+
+Employment data is likewise stored in separate files for the zones within and outside of Massachusetts.
+
+Let's take a look at the employment file for Massachusetts.
+
+```{r}
+MA_emp <- here("model",
+               "inputs",
+               "zonal",
+               "ma_employment_run97-176_2019_v20240109.csv") |>
+  read_csv(show_col_types = FALSE) |>
+  mutate(block_id = as.character(block_id))
+
+head(MA_emp, n = 10) |>
+  kable()
+```
+
+This is block-level data. It shows the total number of households in each block, as well as the total number of jobs in each of ten categories:
+
+1.  Construction
+
+2.  Education and health services
+
+3.  Financial activities
+
+4.  Public administration
+
+5.  Information
+
+6.  Retail, leisure, and hospitality
+
+7.  Manufacturing
+
+8.  Other services
+
+9.  Professional and business services
+
+10. Trade, transportation, and utilities
+
+Again, the New Hampshire/Rhode Island file has the same variables, and block IDs refer to TAZs rather than census blocks. For some reason, this file has about 4500 Massachusetts census blocks appended to the beginning, so I'm filtering those out when I load them below.
+
+```{r}
+RINH_emp <- here("model",
+               "inputs",
+               "zonal",
+               "nhri_employment_2020_v20230518.csv") |>
+  read_csv(show_col_types = FALSE) |>
+  mutate(block_id = as.character(block_id)) |>
+  filter(str_length(block_id) < 10)
+
+head(RINH_emp, n = 10) |>
+  kable()
+```
+
+### Road network
+
+The road network file is listed in the scenarios file as "Highway Input" ("highways" is a term we're using to refer to all roads). To view this file, open it in TransCAD, either by selecting "Open..." from the file menu, or by dragging and dropping it into main TransCAD pane.
+
+```{r, echo=FALSE}
+
+here("T1",
+     "gifs",
+     "open-hwy.gif") |>
+  knitr::include_graphics()
+```
+
+In ArcGIS Pro or QGIS, you can view the data associated with a spatial data layer by opening its attribute table. In TransCAD, you do it by creating a new "dataview" while the layer is active. Select New Dataview from the Dataview menu.
+
+```{r, echo=FALSE}
+
+here("T1",
+     "gifs",
+     "hwy-dataview.gif") |>
+  knitr::include_graphics()
+```
+
+### Transit network
+
+The transit network is stored in a transit route system (\*.rts) file, which you can likewise open by dragging and dropping into TransCAD.
+
+```{r, echo=FALSE}
+
+here("T1",
+     "gifs",
+     "open-transit.gif") |>
+  knitr::include_graphics()
+```
+
+In this case, you'll notice that your map includes a layer of routes as well as a layer of links (also nodes and stops, which are not visible by default). To create a dataview for one of these layers, set it as the active layer before creating a new dataview (which you can do either from the Dataview menu or using the New Dataview button.
+
+```{r, echo=FALSE}
+
+here("T1",
+     "gifs",
+     "transit-dataview.gif") |>
+  knitr::include_graphics()
+```
+
+## Edit model inputs
+
+Think about what information is included in the vehicle availability model. If you changed something about population, employment, the highway network, or the transit network, how might that change vehicle availability?
+
+There is a shopping center near assembly row that currently includes a Trader Joe's grocery store, a TJ Maxx, and a few other businesses. What if we replaced that whole development with 300 units of affordable housing, and also closed the adjacent Fellsway bridge over the Mystic River, and also removed all transit routes that cross that bridge? What would be the predicted vehicle ownership in that new housing development, and how would vehicle ownership change in other neighborhoods in the vicinity?
+
+### Change population
+
+The shopping center I'm thinking about replacing with housing is block 250173501031013. I don't think there is any housing there now, but let's check.
+
+```{r}
+target_block_pop <- MA_pop |>
+  filter(block_id == "250173501031013")
+
+tibble(people = nrow(target_block_pop),
+       households = length(unique(target_block_pop$hid))) |>
+  kable()
+  
+```
+
+It looks like the model does actually include 133 people across 56 households in that block. This is probably because their population data comes from the American Community Survey, which is at the tract level, and they used PopulationSim ([https://activitysim.github.io/populationsim/](PopulationSim)) to disaggregate it to the block level. Or maybe there is some housing in that block that I'm not aware of. At any rate, we'll leave those households here and add an additional 300 households with the following characteristics:
+
+-   Incomes follow a poisson distribution with an average of \$30,000 per year
+
+-   Half of all households are two-person households, one-third are one-person households, and one sixth are three-person households.
+
+-   All households are one-worker households
+
+-   Half of all people who are the second or third person in the household are children
+
+-   The average age of a child is 10. Children's ages are normally distributed with a standard deviation of five years (truncated at zero and 17 years).
+
+-   The average age of an adult is 50. Adults ages are normally distributed with a standard deviation of ten years (truncated at 18 years).
+
+First I'll generate one worker for each household.
+
+```{r}
+new_pop_1 <- tibble(hid = paste0("new", seq(1, 300, by=1)),
+                  block_id = "250173501031013",
+                  hh_inc = rpois(n = 300, lambda = 30000),
+                  persons_seed = runif(n = 300),
+                  age = round(rnorm(n = 300, mean = 50, sd = 10)),
+                  workers = 1,
+                  is_worker = 1,
+                  person_num = 1,
+                  is_child = FALSE) |>
+  mutate(persons = case_when(persons_seed < 0.5 ~ 2,
+                             persons_seed < 0.83 ~ 1,
+                             TRUE ~ 3),
+         age = ifelse(age < 18, 18, age),
+         wage_inc = hh_inc) |>
+  select(-persons_seed)
+```
+
+Now, I'll generate a second person for any households that have a second person.
+
+```{r}
+new_pop_2 <- new_pop_1 |>
+  filter(persons > 1) |>
+  select(hid, block_id, hh_inc, persons, workers) |>
+  mutate(person_num = 2,
+         is_worker = 0,
+         wage_inc = 0)
+
+new_pop_2 <- new_pop_2 |>
+  mutate(child_seed = runif(n = nrow(new_pop_2))) |>
+  mutate(is_child = child_seed < 0.5) |>
+  select(-child_seed)
+
+new_pop_2_kids <- new_pop_2 |>
+  filter(is_child) 
+
+new_pop_2_kids <- new_pop_2_kids |>
+  mutate(age = round(rnorm(n = nrow(new_pop_2_kids), mean = 10, sd = 5))) |>
+  mutate(age = case_when(age < 0 ~ 0,
+                         age > 17 ~ 17,
+                         TRUE ~ age))
+
+new_pop_2_adult <- new_pop_2 |>
+  filter(!is_child) 
+
+new_pop_2_adult <- new_pop_2_adult |>
+  mutate(age = round(rnorm(n = nrow(new_pop_2_adult), mean = 50, sd = 10))) |>
+  mutate(age = ifelse(age < 18, 18, age))
+
+new_pop_2 <- rbind(new_pop_2_adult, new_pop_2_kids)
+```
+
+And now I'll generate a third person for any household that has one.
+
+```{r}
+
+new_pop_3 <- new_pop_1 |>
+  filter(persons > 2) |>
+  select(hid, block_id, hh_inc, persons, workers) |>
+  mutate(person_num = 3,
+         is_worker = 0,
+         wage_inc = 0)
+
+new_pop_3 <- new_pop_3 |>
+  mutate(child_seed = runif(n = nrow(new_pop_3))) |>
+  mutate(is_child = child_seed < 0.5) |>
+  select(-child_seed)
+
+new_pop_3_kids <- new_pop_3 |>
+  filter(is_child) 
+
+new_pop_3_kids <- new_pop_3_kids |>
+  mutate(age = round(rnorm(n = nrow(new_pop_3_kids), mean = 10, sd = 5))) |>
+  mutate(age = case_when(age < 0 ~ 0,
+                         age > 17 ~ 17,
+                         TRUE ~ age))
+
+new_pop_3_adult <- new_pop_3 |>
+  filter(!is_child) 
+
+new_pop_3_adult <- new_pop_3_adult |>
+  mutate(age = round(rnorm(n = nrow(new_pop_3_adult), mean = 50, sd = 10))) |>
+  mutate(age = ifelse(age < 18, 18, age))
+
+new_pop_3 <- rbind(new_pop_3_adult, new_pop_3_kids)
+```
+
+And now we'll put all those people into one dataframe and count the number of children in each household.
+
+```{r}
+new_pop <- rbind(new_pop_1, new_pop_2) |>
+  rbind(new_pop_3) |>
+  group_by(hid) |>
+  mutate(children = sum(is_child)) |>
+  select(-is_child) |>
+  arrange(hid, person_num)
+
+head(new_pop, n = 15) |>
+  kable()
+  
+```
+
+And I'll create a new population data frame for Massachusetts that includes these files and write that to a new csv file.
+
+```{r}
+MA_pop |>
+  rbind(new_pop) |>
+  write_csv(here("model",
+                 "inputs",
+                 "zonal",
+                 "ma_pop_more.csv"))
+```
+
+Notice that the way I'm representing the addition of affordable housing is that I'm adding 300 new households to the region. This means I'm assuming that all of these new housing units would be filled by people moving in from outside the region. If I wanted to assume that they were vacating other housing in the region, or that that they were leaving other households to form new households, I'd have to take a different approach here.
+
+### Change employment
+
+Again, the block we're thinking about targeting is block 250173501031013. Let's take a look at the employment file.
+
+```{r}
+MA_emp |>
+  filter(block_id == "250173501031013") |>
+  t() |>
+  kable()
+```
+
+You can see that this block has 344 jobs across various sectors, and over three quarters of those are in "Retail and Leisure," which makes sense because this is a shopping center. Since the scenario I'm testing would replace the shopping center with housing, I'm going to remove all those jobs, but leave the households. I'll also increase the number of households by 300, to represent the 300 affordable housing units I'm adding.
+
+```{r}
+
+new_emp <- tibble(block_id = "250173501031013",
+                  `1_constr` = 0,
+                  `2_eduhlth` = 0,
+                  `3_finance` = 0,
+                  `4_public` = 0,
+                  `5_info` = 0,
+                  `6_ret_leis` = 0,
+                  `7_manu` = 0,
+                  `8_other` = 0,
+                  `9_profbus` = 0,
+                  `10_ttu` = 0,
+                  total_jobs = 0,
+                  total_households = 356)
+
+MA_emp |>
+  filter(block_id != "250173501031013") |>
+  rbind(new_emp) |>
+  write_csv(here("model",
+                 "inputs",
+                 "zonal",
+                 "ma_emp_less.csv"))
+```
+
+### Change highway network
+
+I'm going to delete the Fellsway bridge over the Mystic River.
+
+You'll need to edit the highway network from TransCAD. Start by making a copy of the `inputs/networks/tdw23.1.0/2019` folder and renaming it.
+
+```{r, echo=FALSE}
+
+here("T1",
+     "gifs",
+     "copy-paste.gif") |>
+  knitr::include_graphics()
+```
+
+Now open the highway network file from that new directory in TransCAD. You may find it helpful to turn on a basemap to help you orient yourself.
+
+```{r, echo=FALSE}
+
+here("T1",
+     "gifs",
+     "basemap.gif") |>
+  knitr::include_graphics()
+
+```
+
+I'm going to zoom to the Fellsway bridge and delete those links from the network.
+
+```{r, echo=FALSE}
+
+here("T1",
+     "gifs",
+     "delete-links.gif") |>
+  knitr::include_graphics()
+```
+
+### Change transit network
+
+There are transit routes that also use that bridge, and those are still represented in the transit network. If we ran the model like this, we would effectively saying that the bridge is still there (it serves buses) but that it's closed to non-transit vehicles. But I want to look at a scenario where the bridge is gone, and the transit agency has responded by just removing those entire routes from its network.
+
+Open the transit routes file in TransCAD (the one in the folder that you copied - don't edit your original file). When you open it, you'll see a message that says the underlying highway network has changed and asking if you want to update the transit network to match. Select yes. You'll notice that when you zoom in on the Fellsway bridge now, there's a gap in the transit routes that go over the bridge. The model still has service connecting the stops on that routes that go over the bridge though.
+
+```{r, echo=FALSE}
+
+here("T1",
+     "gifs",
+     "transit-open-edit.gif") |>
+  knitr::include_graphics()
+```
+
+We're going to go ahead and delete the transit routes that were using the bridge we deleted.
+
+```{r, echo=FALSE}
+
+here("T1",
+     "gifs",
+     "delete-transit.gif") |>
+  knitr::include_graphics()
+```
+
+## Create scenarios
+
+In the file `CTPS_TDM23.scenarios`, you can copy the lines from `Scenario "Base"` to `EndScenario` (inclusive) and paste them below the base scenario. Then for any files you've created alternative versions of, update the file paths to refer to the modified files. Save the modified scenario file.
+
+## Run the vehicle model for each scenario
+
+Open the model file in TransCAD.
+
+Select the scenario you want to run (the options should be "Base" and the other scenario that you've modified in the `*.scenarios` file).
+
+Right-click on the box for "Vehicle Availability" and select Run -\> Run Model to Here.
+
+Then go get lunch or something. On my computer, this part of the model run takes about 30 minutes Most of that time is the initialization step(s).
+
+Do this for both the base scenario and the alternative scenario you've created.
+
+```{r}
+
+here("T1",
+     "gifs",
+     "start-run.gif") |>
+  knitr::include_graphics()
+```
+
+## Compare scenario results
+
+The output of the vehicle availability submodel will be stored in a file called tdm23.db in the output directory for your scenario. This is an SQLite database and you can use the `RSQLite` package to interact with it.
+
+Let's start by loading the results of for the existing condition.
+
+```{r}
+
+base_db <- dbConnect(drv=RSQLite::SQLite(), 
+                     dbname=here("model",
+                                 "outputs",
+                                 "Base",
+                                 "tdm23.db"))
+```
+
+Now we can see a list of the tables that are available in that database.
+
+```{r}
+dbListTables(base_db)
+```
+
+Let's take a look at the vehicles (veh) table.
+
+```{r}
+
+dbGetQuery(base_db, 'SELECT * FROM veh LIMIT 10') |>
+  kable()
+```
+
+This table shows whether each household has zero vehicles (zv), insufficient vehicles (iv), or sufficient vehicles (sv). It also shows the predicted number of vehicles. Since the vehicle availability model only predicts the vehicle availability category, I'm not sure where the predicted number of vehicles is coming from. We won't use it.
+
+The changes we made for our alternative scenario would have the greatest effect on vehicle availability for households within Somerville and Medford. So let's take a look at just those.
+
+```{r}
+my_query <- paste0("SELECT * FROM veh WHERE block_id IN (",
+                   str_flatten_comma(somermed_blocks$GEOID10),
+                   ")")
+
+somermed_vehs_base <- dbGetQuery(base_db, my_query)
+
+head(somermed_vehs_base) |>
+  kable()
+```
+
+Now we can close the connection to the baseline scenario and take a look at the results of the alternative scenario.
+
+```{r}
+dbDisconnect(base_db)
+
+alt_db <- dbConnect(drv=RSQLite::SQLite(), 
+                     dbname=here("model",
+                                 "outputs",
+                                 "alternative",
+                                 "tdm23.db"))
+```
+
+Now let's look at vehicle availability in Somerville and Medford under the alternative scenario.
+
+```{r}
+my_query <- paste0("SELECT * FROM veh WHERE block_id IN (",
+                   str_flatten_comma(somermed_blocks$GEOID10),
+                   ")")
+
+somermed_vehs_alt <- dbGetQuery(alt_db, my_query)
+
+dbDisconnect(alt_db)
+
+head(somermed_vehs_alt) |>
+  kable()
+```
+
+Now we can combine those into a single dataframe and make some comparisons.
+
+```{r}
+somermed_vehs_base <- somermed_vehs_base |>
+  rename(veh_suff_base = veh_suff) |>
+  select(-num_vehs)
+
+somermed_vehs_alt <- somermed_vehs_alt |>
+  rename(veh_suff_alt = veh_suff) |>
+  select(-num_vehs)
+
+somermed_vehs_dif <- full_join(somermed_vehs_base, somermed_vehs_alt) |>
+  mutate(veh_suff_base = ifelse(is.na(veh_suff_base), "new", veh_suff_base))
+
+somermed_vehs_changed_hh <- somermed_vehs_dif |>
+  mutate(change = case_when(veh_suff_base == "new" & veh_suff_alt == "zv" ~
+                              "New zv",
+                            veh_suff_base == "new" & veh_suff_alt == "iv" ~
+                              "New iv",
+                            veh_suff_base == "new" & veh_suff_alt == "sv" ~
+                              "New sv",
+                            veh_suff_base == "zv" & veh_suff_alt == "iv" ~
+                              "gained vehicle",
+                            veh_suff_base == "zv" & veh_suff_alt == "sv" ~
+                              "gained vehicle",
+                            veh_suff_base == "sv" & veh_suff_alt == "zv" ~
+                              "lost vehicle",
+                            veh_suff_base == "sv" & veh_suff_alt == "iv" ~
+                              "lost vehicle",
+                            veh_suff_base == "iv" & veh_suff_alt == "zv" ~
+                              "lost vehicle",
+                            veh_suff_base == "iv" & veh_suff_alt == "sv" ~
+                              "gained vehicle",
+                            TRUE ~ "no change"))
+
+somermed_vehs_changed_blocks <- somermed_vehs_changed_hh |>
+  group_by(block_id) |>
+  summarise(n_hhs = n(),
+            n_new_zv = sum(change == "New zv"),
+            n_new_iv = sum(change == "New iv"),
+            n_new_sv = sum(change == "New sv"),
+            n_gained_veh = sum(change == "gained vehicle"),
+            n_lost_veh = sum(change == "lost vehicle")) |>
+  filter(n_lost_veh +
+           n_gained_veh +
+           n_new_sv +
+           n_new_iv +
+           n_new_zv > 0) |>
+  rename(GEOID10 = block_id)
+
+kable(somermed_vehs_changed_blocks)
+```
+
+You can see that there are twelve census blocks with any changes to household vehicle ownership. Let's take a look at them on a map.
+
+```{r}
+dif_blocks <- somermed_blocks |>
+  right_join(somermed_vehs_changed_blocks) 
+
+veh_labels <- paste0(dif_blocks$n_hhs,
+                        " total households<br/>",
+                        dif_blocks$n_new_zv, 
+                        " new car-free households<br/>",
+                        dif_blocks$n_new_iv,
+                        " new car-lite households<br/>",
+                        dif_blocks$n_new_sv,
+                         " new full-car households<br/>",
+                        dif_blocks$n_lost_veh,
+                        " households lost a vehicle<br/>",
+                        dif_blocks$n_gained_veh,
+                        " households gained a vehicle") |>
+  lapply(htmltools::HTML)
+
+leaflet(dif_blocks) |>
+  addProviderTiles(provider = "CartoDB.Positron") |>
+  addPolygons(weight = 2,
+              color = "forestgreen",
+              fillColor = "forestgreen",
+              fillOpacity = 0.1,
+              highlightOptions = highlightOptions(weight = 3,
+                                                  fillOpacity = 0.5),
+              label = veh_labels)
+```
+
+You might decide to do your data visualization in ArcGIS or QGIS. If that's you preference, you can write the spatial data to a shapefile:
+
+```{r, warning=FALSE, message=FALSE}
+
+st_write(dif_blocks,
+         here("T1",
+              "dif_blocks.shp"),
+         append = FALSE)
+```
