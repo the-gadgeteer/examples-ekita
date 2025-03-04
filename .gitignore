@@ -38,6 +38,7 @@ rsconnect/
 data/NHTS/perpub.csv
 data/NHTS/trippub.csv
 data/NHTS/vehpub.csv
+data/NHTS/hhpub.csv
 # All model input and output
 model/outputs/
 model/inputs/
