@@ -12,13 +12,9 @@ The purpose of this assignment is for you to get some experience estimating and 
 
 -   Reading the documentation for the trip generation submodel of the Boston Region Metropolitan Planning Organization's regional travel demand model ([TDM23](https://www.ctps.org/travel-demand-model)),
 
--   Estimating one or more trip generation models for a trip purpose that is not represented in TDM23.
-
 -   Interpreting the model results to explain the influence that household and built-environment characteristics have on trip generation for the trip purpose you have selected.
 
 ## Load libraries
-
-This analysis uses the following packages:
 
 ```{r, warning=FALSE, message=FALSE}
 
@@ -37,29 +33,21 @@ here("code",
 
 ## Load datasets
 
-This analysis uses household-level, person-level, and trip-level data from the 2017 National Household Travel Survey. Keep in mind that TDM23 is meant to represent travel on a "typical weekday", so for comparison purposes, we'll filter our data to only include participants who completed their travel diary on a weekday.
-
 ```{r}
 hh_data <- here("data",
                 "NHTS",
                 "hhpub.csv") |>
-  read_csv(show_col_types = FALSE) |>
-  filter(TRAVDAY != "01",
-          TRAVDAY != "07")
+  read_csv(show_col_types = FALSE) 
 
 person_data <- here("data",
                     "NHTS",
                     "perpub.csv") |>
-  read_csv(show_col_types = FALSE) |>
-  filter(TRAVDAY != "01",
-          TRAVDAY != "07")
+  read_csv(show_col_types = FALSE)
 
 trip_data <- here("data",
                     "NHTS",
                     "trippub.csv") |>
   read_csv(show_col_types = FALSE)  |>
-  filter(TRAVDAY != "01",
-          TRAVDAY != "07") |>
   select(HOUSEID,
          PERSONID,
          TDTRPNUM,
@@ -72,70 +60,10 @@ trip_data <- here("data",
          WTTRDFIN)
 ```
 
-## Examine trip purposes
-
-Refer to the TDM23 Structures and Performance report (<https://ctps.org/pub/tdm23_sc/tdm23.1.0/TDM23_Structures%20and%20Performance.pdf>) for details on the trip generation sub-model of the TDM23 model (beginning on page 73).
-
-TDM23 includes two worker-level trip production models, one for each of two trip purposes:
-
--   **Home-based work trips** are what you would typically think of as commute trips: trips between a person's home and their place of work.
-
--   **Non-home-based work trips** are trips that begin or end at a person's place of work, but neither begin nor end at that person's home.
-
-TDM23 also includes four household-level trip production models, one for each of four trip purposes:
-
--   **Home-based personal business:** see Table 30 of the Structures and Performance Report (page 74)
-
--   **Home-based school:** see Table 30 of the Structures and Performance Report (page 74) (note that university trips are handled in a separate submodel entirely).
-
--   **Home-based social/recreation:** see Table 30 of the Structures and Performance Report (page 74)
-
--   **Non-home-based non-work trips** are trips that do not have the home or the work place as a trip end.
-
-How common is each of these trip purposes? The trips data set has two variables that you can use to construct a trip purpose variable that aligns with the above:
-
--   **WHYTO:** What was the primary activity at the trip destination
-
--   **WHYFROM:** What was the primary activity at the trip origin.
-
-You can see the codes for the all possible activities here in the online codebook (these are the codes for WHYTO, but they are the same for WHYFROM): <https://nhts.ornl.gov/tables09/CodebookPage.aspx?id=1375>
-
-You may notice that the trips data also has a trip-purpose variable with the following categories:
-
--   HBO (Home-based other)
-
--   HBSHOP (Home-based shopping)
-
--   HBSOCREC (Home-based social recreation)
-
--   HBW (Home-based work)
-
--   NHB (non-home-based)
-
-These are slightly different than the categories TDM23 uses, so we'll construct our own trip purpose variable that better aligns with TDM23.
-
 ### Link up unlinked trips
 
-One of the origin/destination purposes that can be specified is to change to another type of transportation. For example, here is a the full set of travel-day trips for one individual:
-
 ```{r}
-
-trip_data |>
-  filter(HOUSEID == "40173222" & PERSONID == "03") |>
-  kable()
-```
-
-This person made three trips on the travel day:
-
--   Trip 1 was a trip by car (`03`) from home (`01`) to school (`08`).
-
--   Trip 2 was a trip by bus (`11`) from school (`08`) to change transportation modes (`07`).
-
--   Trip 3 was a trip by car (`03`) from changing transportation modes (`07`) to home (`01`).
-
-For our analysis, it will be better to treat trips 2 and 3 above as a single trip from school to home, so we'll link trips like this together. Here's an easy-ish approach to do that. It would be a little trickier if we wanted to keep track of all the modes that were used on the trip (which we don't need to do for this assignment, but we will need to do on a subsequent assignment).
-
-```{r}
+# manage transfer trips
 
 trip_data <- trip_data |>
   mutate(transfer_trip = WHYTO == "07" | WHYFROM == "07")
@@ -158,117 +86,18 @@ trip_data <- trip_data |>
   select(-TRIPPURP, -TRPTRANS, -transfer_trip)
 ```
 
-Now we can check back in on our friend who took the bus and the car home from school:
+*For this assignment, you should select (or define) a trip purpose that is not included in TDM23. You don't need to limit your analysis to weekdays (and in fact, you could limit it to weekends if you want to). You can do an analysis at the household level or at the individual level. If you want, your selected trip purpose can be broader than any in TDM23 (e.g. "all trips") or more narrow (e.g. health care trips). You can also limit your analysis to a particular population (e.g. seniors or households with children).*
 
-```{r}
-
-trip_data |>
-  filter(HOUSEID == "40173222" & PERSONID == "03") |>
-  kable()
-```
-
-And we can see that the trip home from school has been combined into a single trip.
-
-### Construct trip purposes
-
-Now we can start constructing our trip purpose variable that's consistent with TDM23.
-
-```{r}
-home <- c("01", "02")
-work <- c("03", "04", "05")
-per_bus <- c("06", "11", "12", "14", "18")
-soc_rec <- c("10", "13", "15", "16", "17", "19")
-school <- c("08", "09")
-lt_hs_grad <- c("-1", "-7", "-8", "01")
-
-trip_data <- trip_data |>
-  mutate(purpose = case_when(WHYTO %in% home & WHYFROM %in% work ~ "HBW",
-                             WHYTO %in% work & WHYFROM %in% home ~ "HBW",
-                             WHYTO %in% work | WHYFROM %in% work ~ "NHBW",
-                             WHYTO %in% home & WHYFROM %in% per_bus ~ "HBPB",
-                             WHYTO %in% per_bus & WHYFROM %in% home ~ "HBPB",
-                             WHYTO %in% home & WHYFROM %in% soc_rec ~ "HBSR",
-                             WHYTO %in% soc_rec & WHYFROM %in% home ~ "HBSR",
-                             WHYTO %in% home &
-                               WHYFROM %in% school &
-                               EDUC %in% lt_hs_grad &
-                               R_AGE < 21 ~ "HBSC",
-                             WHYTO %in% school &
-                               WHYFROM %in% home &
-                               EDUC %in% lt_hs_grad &
-                               R_AGE < 21 ~ "HBSC",
-                             WHYTO %in% home &
-                               WHYFROM %in% school ~ "HBU",
-                             WHYTO %in% school &
-                               WHYFROM %in% home ~ "HBU",
-                             WHYTO %in% home | WHYFROM %in% home ~ "HBO",
-                             TRUE ~ "NHBNW"))
-
-```
-
-### Summarize trip purposes
-
-Now we can summarize the number of trips in our sample that are categorized into each trip purpose.
-
-```{r}
-
-trip_data |>
-  group_by(purpose) |>
-  summarise(`Number of trips (unweighted)` = n()) |>
-  mutate(`Percent of trips (unweighted)` = 
-           100 * `Number of trips (unweighted)`/
-           sum(`Number of trips (unweighted)`)) |>
-  arrange(desc(`Percent of trips (unweighted)`)) |>
-  kable(format.args = list(big.mark = ","), digits = 0)
-```
-
-And here are the estimated numbers of trips in the full population (incorporating survey weights).
-
-```{r}
-
-trip_data |>
-  as_survey_design(weights = WTTRDFIN) |>
-  group_by(purpose) |>
-  survey_tally() |>
-  mutate(`Percent of trips (weighted)` =  100*n / sum(n)) |>
-  rename(`Number of trips (weighted)` = n) |>
-  select(purpose, 
-         `Number of trips (weighted)`,
-         `Percent of trips (weighted)`) |>
-  arrange(desc(`Percent of trips (weighted)`)) |>
-  kable(format.args = list(big.mark = ","), digits = 0)
-```
-
-You can see that home-based personal business trips are the most common trip purpose, followed by non-home-based non-work trips. The next two most common trip purposes are home-based work trips and home-based social/recreational trips (and the weighting effects the relative ranks of those). Home-based work trips represent less than 20 percent of all trips, which should give us pause when we consider the emphasis that transportation planners have historically placed on the commute trip.
-
-*For this assignment, you should select (or define) a trip purpose that is not included in TDM23. You don't need to limit your analysis to weekdays (and in fact, you could limit it to weekends if you want to). You can do an analysis at the household level or at the individual level. If you want, your selected trip purpose can be broader than any in TDM23 (e.g. "all trips") or more narrow (e.g. health care trips). You can also limit your analysis to a particular population (e.g. seniors or households with children). Keep in mind that if you want to learn something about what makes the travel behavior of a particular population unique, you should not limit your analysis to that population. Better to include a broader population in your sample and include a variable to represent the effect of being in your population of interest.*
-
-For the rest of this example, I will focus on home-based work trips (as defined in TDM23), and I will construct an initial model that follows the approach used for TDM23.
+*Keep in mind that if you want to learn something about what makes the travel behavior of a particular population unique, you should not limit your analysis to that population. Better to include a broader population in your sample and include a variable to represent the effect of being in your population of interest.*
 
 ## Select and construct predictor variables
 
-TDM23 predicts the number of home-based work trips (at the worker level) using four predictors:
-
--   Number of household seniors
-
--   Number of household workers
-
--   Household vehicle availability category
-
--   Household income category
-
-All of these were also included in the vehicle availability model, and we can construct them at the household level the same way we did for the vehicle availability assignment.
-
 ```{r, message=FALSE}
-n_seniors <- person_data |>
-  mutate(is_senior = R_AGE > 64) |>
-  group_by(HOUSEID) |>
-  summarise(n_seniors = sum(is_senior))
+person_data <- person_data |>
+  mutate(has_med_cond = case_when(MEDCOND == "01" ~ TRUE,
+                              MEDCOND == "02" ~ FALSE))
 
 hh_data <- hh_data |>
-  mutate(veh_avail = case_when(HHVEHCNT == 0 ~ "Zero",
-                               DRVRCNT > HHVEHCNT ~ "Insuff.",
-                               TRUE ~ "Suff.")) |>
   mutate(HHFAMINC = as.numeric(HHFAMINC)) |>
   filter(HHFAMINC > 0) |>
   mutate(income = case_when(HHFAMINC < 4 ~ "low",
@@ -279,96 +108,83 @@ hh_data <- hh_data |>
                              HHFAMINC > 8 ~ "high",
                             TRUE ~ "middle")) |>
   mutate(income = factor(income, levels = c("low", "middle", "high"))) |>
-  left_join(n_seniors) |>
   select(HOUSEID,
-         HHSIZE,
-         WRKCOUNT,
-         n_seniors,
-         veh_avail,
          income)
-  
-  
+
 ```
 
-It's interesting that, even though the home-based-work trip generation model is applied at the level of the individual worker, it does not include any individual-level variables (like age, gender, or race). I'll add a couple individual level variables like to my worker-level dataset in case I want to include them in an alternative model.
-
 ```{r, message=FALSE}
-workers <- person_data |>
-  filter(WORKER == "01") |>
-  select(HOUSEID, PERSONID, R_SEX, WKFTPT, R_RACE, R_AGE) |>
-  mutate(WKFTPT = as.numeric(WKFTPT)) |>
-  filter(WKFTPT > 0) |>
+
+# add hh family income to person with medical condition
+persons <- person_data |>
+  select(HOUSEID, PERSONID, MEDCOND, R_SEX, R_RACE, R_AGE) |>
   mutate(female = R_SEX == "02") |>
-  mutate(part_time = WKFTPT == 2) |>
+  mutate(has_med_cond = case_when(MEDCOND == "01" ~ TRUE,
+                              MEDCOND == "02" ~ FALSE)) |>
+  select(HOUSEID, PERSONID, R_RACE, R_AGE, female, has_med_cond) |>
   inner_join(hh_data)
+
+head(persons)
 ```
 
-And now I'll count the number of home-based work trips and add that to my worker dataset.
-
 ```{r, message=FALSE}
-hbw_trips <- trip_data |>
-  filter(purpose == "HBW") |>
+tot_trips <- trip_data |>
   group_by(HOUSEID, PERSONID) |>
-  summarise(hbw_trips = n())
+  summarise(tot_trips = n())
 
-workers <- workers |>
-  left_join(hbw_trips) |>
-  replace_na(list(hbw_trips = 0)) |>
+persons <- persons |>
+  left_join(tot_trips) |>
+  replace_na(list(tot_trips = 0)) |>
   mutate(income = factor(income, levels = c("low", "middle", "high")))
 ```
 
 ## Data visualization
 
-Let's take a look at the distribution of trip counts for each of these trip purposes. Here is the histogram for home-based work trips
-
 ```{r}
-ggplot(workers) +
-  geom_histogram(aes(x = hbw_trips),
+ggplot(persons) +
+  geom_histogram(aes(x = tot_trips),
                  binwidth = 1,
                  color = "gray",
                  fill = "lightgreen") +
-  scale_x_continuous(name = "Number of home-based work trips",
+  scale_x_continuous(name = "Number of trips",
                      breaks = seq(0, 12, by=1)) +
-  scale_y_continuous(name = "Number of workers in sample") +
+  scale_y_continuous(name = "Persons with medical condition in sample") +
   theme_minimal()
 ```
 
-This is not a normal distributions, which may suggest that a linear regression model is not going to be the most appropriate.
-
-Trip counts are an example of count data - values that represent counts of things. Count data commonly follow a poisson distribution or a negative binomial distribution. The main difference between a poisson distribution and a negative binomal distribution is that, in a poisson distribution, the standard deviation will be approximately equal to the mean, and in a negative binomial distribution, the standard deviation might be much greater than the mean (e.g. the data may be over-dispersed for a Poisson distribution). Let's check the standard deviations and means of out two trip count variables.
-
 ```{r}
-workers |>
-  summarise(`Average count of HBW trips` = mean(hbw_trips),
-            `Standard deviation` = sd(hbw_trips)) |>
+persons |>
+  summarise(`Average count of total trips` = mean(tot_trips),
+            `Standard deviation` = sd(tot_trips)) |>
   kable(digits = 3)
 ```
 
-For home-based work trips, the mean and standard deviation are both about one, so a poisson regression might be appropriate.
-
 ## Estimate models
-
-I'm going to demonstrate the following types of models:
-
--   Linear regression
-
--   Poisson regression
-
--   Zero-inflated Poisson regression
-
--   Discrete choice (review)
 
 ### Linear regression
 
-TDM is using a linear regression model, so we'll start with that approach.
-
-Here is a linear model predicting home-based work trips based on the variables that are included in the TDM23 model.
-
 ```{r}
-hbw_model_1 <- lm(hbw_trips ~ n_seniors + WRKCOUNT + veh_avail + income, 
-   data = workers)
+# med_model_1 <- lm(tot_trips ~ has_med_cond + income,
+#    data = med_cond)
+# 
+# summary(med_model_1)
 
-summary(hbw_model_1)
+# med_model_2 <- glm(tot_trips ~ has_med_cond + income, 
+#    data = persons,
+#    family = "poisson")
+# 
+# summary(med_model_2)
+
+med_model_3 <- zeroinfl(tot_trips ~ has_med_cond + income + income:has_med_cond, 
+   data = persons, dist = "poisson")  
+summary(med_model_3)
+
+# med_model_4 <- glm.nb(tot_trips ~ has_med_cond + income + income:has_med_cond, 
+#    data = persons)
+# 
+# summary(med_model_4)
+# 
+AIC(med_model_3)
 ```
 
 Let's compare this result to the model parameters in TDM23.
@@ -442,26 +258,6 @@ workers |>
   kable(digits = 0)
 ```
 
-Here is a plot comparing the predicted values from the NHTS model to the observed values.
-
-```{r}
-hbw_check_1 <- tibble(observed = hbw_model_1$model$hbw_trips,
-                    predicted = hbw_model_1$fitted.values)
-
-ggplot(hbw_check_1) +
-  geom_jitter(aes(x = observed,
-                 y = predicted),
-              color = "lightgreen",
-              alpha = 0.1) +
-  scale_x_continuous(name = "Number of observed trips per worker",
-                     limits = c(-1, 12.5),
-                     breaks = seq(0, 12, by = 1)) +
-  scale_y_continuous(name = "Number of predicted trips per worker",
-                     limits = c(0, 2),
-                     breaks = seq(0, 2, by = 0.25)) +
-  theme_minimal()
-```
-
 We can also round the predicted values to a whole number of trips and generate a confusion matrix.
 
 ```{r}
@@ -488,8 +284,6 @@ hbw_check_1 <- hbw_check_1 |>
 
 confusionMatrix(hbw_check_1$predicted_cat, hbw_check_1$observed_cat)
 ```
-
-The model never predicts anything other than a value that is rounded to one, so the model accuracy is 25 percent (since 25 percent of our sample really did make one HBW trip).
 
 ### Poisson regression
 
