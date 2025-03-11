@@ -80,10 +80,6 @@ trip_data <- trip_data |>
   select(-TRIPPURP, -TRPTRANS, -transfer_trip)
 ```
 
-*For this assignment, you should select (or define) a trip purpose that is not included in TDM23. You don't need to limit your analysis to weekdays (and in fact, you could limit it to weekends if you want to). You can do an analysis at the household level or at the individual level. If you want, your selected trip purpose can be broader than any in TDM23 (e.g. "all trips") or more narrow (e.g. health care trips). You can also limit your analysis to a particular population (e.g. seniors or households with children).*
-
-*Keep in mind that if you want to learn something about what makes the travel behavior of a particular population unique, you should not limit your analysis to that population. Better to include a broader population in your sample and include a variable to represent the effect of being in your population of interest.*
-
 ## Select and construct predictor variables
 
 ```{r, message=FALSE}
