@@ -1,0 +1,243 @@
+---
+title: "P5: Mode Choice"
+format: 
+  html:
+    theme: minty
+    toc: true
+    toc-location: left
+editor: visual
+---
+
+## Load libraries
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(here)
+library(knitr)
+library(srvyr)
+library(tidycensus)
+library(jtools)
+```
+
+## Load dataset
+
+```{r}
+trips <- here("data",
+              "NHTS",
+              "trippub.csv") |>
+  read_csv(show_col_types = FALSE)
+```
+
+```{r}
+people <- here("data",
+               "NHTS",
+               "perpub.csv") |>
+  read_csv(show_col_types = FALSE)
+```
+
+## Filter sample
+
+### Filter for selected trip purpose
+
+```{r}
+
+#can filter for school trips, but starting wide for now
+
+visit_trips <- trips |>
+  filter(WHYTO == "08" |
+           WHYFROM == "08")
+```
+
+### Filter for selected population
+
+```{r}
+
+jr_visit_trips <- visit_trips |>
+  filter(R_AGE < 19)
+
+```
+
+### Filter for trip distance
+
+```{r}
+
+short_jr_visit_trips <- jr_visit_trips |>
+  filter(TRPMILAD < 1.5)
+
+nrow(short_jr_visit_trips)
+```
+
+## Generate outcome variable
+
+```{r}
+
+short_jr_visit_trips <- short_jr_visit_trips |>
+  mutate(walk = TRPTRANS == "01")
+```
+
+```{r, message=FALSE}
+
+short_jr_visit_trips |>
+  mutate(Mode = factor(ifelse(walk, "Walk", "Other mode"),
+                       levels = c("Walk", "Other mode"))) |>
+  group_by(Mode) |>
+  summarise(`Number of trips` = n()) |>
+  mutate(`Percent of trips` = 
+           paste0(round(100*`Number of trips`/sum(`Number of trips`)), "%")) |>
+  kable()
+```
+
+```{r, message=FALSE}
+
+short_jr_visit_trips |>
+  as_survey_design(weights = WTTRDFIN) |>
+  mutate(Mode = factor(ifelse(walk, "Walk", "Other mode"),
+                       levels = c("Walk", "Other mode"))) |>
+  group_by(Mode) |>
+  survey_tally(vartype = "ci") |>
+  mutate(`Estimated percent of trips` = 
+           paste0(round(100*n/sum(n)),"%"),
+         `Lower estimate (95% confidence)` = 
+           paste0(round(100*n_low/sum(n)),"%"),
+         `Upper estimate (95% confidence)` = 
+           paste0(round(100*n_upp/sum(n)),"%")) |>
+  select(Mode,
+         `Estimated percent of trips`,
+         `Lower estimate (95% confidence)`,
+         `Upper estimate (95% confidence)`) |>
+  kable()
+```
+
+## Choose predictor variables
+
+### Distance
+
+```{r}
+
+sample_trips <- short_jr_visit_trips |>
+  filter(TRPMILES >=0)
+
+ggplot(sample_trips) +
+  geom_histogram(aes(x = TRPMILES),
+                 color = "gray",
+                 fill = "cornsilk",
+                 binwidth = 0.1) +
+  scale_x_continuous(name = "Trip distance (miles)",
+                     breaks = seq(0, 1.5, by=0.1)) +
+  scale_y_continuous(name = "Number of trips in sample") +
+  theme_minimal()
+```
+
+### Age
+
+```{r}
+
+sample_trips <- short_jr_visit_trips |>
+  filter(R_AGE >=0)
+
+ggplot(sample_trips) +
+  geom_histogram(aes(x = R_AGE),
+                 color = "gray",
+                 fill = "cornsilk",
+                 binwidth = 1) +
+  scale_x_continuous(name = "Traveler's age (years)",
+                     breaks = seq(0, 20, by=1)) +
+  scale_y_continuous(name = "Number of trips in sample") +
+  theme_minimal()
+```
+
+### Density
+
+```{r}
+sample_trips <- sample_trips |>
+  filter(DBPPOPDN > 0)
+
+density_values <- c(50, 300, 750, 1500, 3000, 7000, 17000, 30000)
+
+ggplot(sample_trips) +
+  geom_histogram(aes(x = DBPPOPDN),
+                 color = "gray",
+                 fill = "cornsilk",
+                 bins = 30) +
+  scale_x_continuous(breaks = density_values,
+                 labels = density_values,
+                 transform = "log",
+                 name = paste0("Population density of destination\n",
+                               "block group (people per sq-mi)")) +
+  scale_y_continuous(name = "Number of trips in sample") +
+  theme_minimal()
+```
+
+### Gender
+
+```{r}
+
+sample_trips <- sample_trips |>
+  filter(R_SEX != "-7") |>
+  filter(R_SEX != "-8") |>
+  mutate(female = R_SEX == "02")
+```
+
+### Vehicle availability
+
+```{r}
+
+sample_trips <- sample_trips |>
+  mutate(zero_veh = HHVEHCNT ==0)
+```
+
+### Final sample size
+
+```{r}
+nrow(sample_trips)
+```
+
+## Estimate model
+
+```{r}
+
+model <- glm(walk ~ 
+               TRPMILES +
+               R_AGE +
+               DBPPOPDN +
+               female +
+               zero_veh,
+             data = sample_trips,
+             family = "binomial")
+
+coeff_labels <- c("Trip distance (miles)" = "TRPMILES",
+                  "Age (years)" = "R_AGE",
+                  "Block-group population density at destination" =
+                    "DBPPOPDN",
+                  "Female" = "femaleTRUE",
+                  "Zero-vehicle household" = "zero_vehTRUE")
+
+export_summs(model, 
+             robust = "HC3", 
+             coefs = coeff_labels,
+             error_format = "(p = {p.value})",
+             error_pos = "right")
+```
+
+```{r, eval=FALSE}
+
+export_summs(model, 
+             robust = "HC3", 
+             coefs = coeff_labels,
+             error_format = "(p = {p.value})",
+             error_pos = "same",
+             to.file = "Word",
+             file.name = here("P5",
+                              "model-result.docx"))
+```
+
+```{r}
+
+effect_plot(model, pred = "TRPMILES", interval = TRUE) +
+  scale_x_continuous(name = "Trip distance (miles)",
+                     breaks = seq(0, 1.5, by=0.1),
+                     limits = c(0, 1.5)) +
+  scale_y_continuous(name = "Probabilitity of walking",
+                     breaks = breaks <- seq(0, 0.8, by = 0.1),
+                     labels = paste0(breaks*100, "%"))
+```
